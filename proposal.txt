@@ -1,0 +1,8 @@
+A section describing your proposed work in more detail. 
+If you plan to build something, what will the steps to building that thing be? 
+If you plan to carry out experiments, describe the experiments, including how you might evaluate your results. 
+What challenges do you expect to face along the way?
+Proposed Work:
+There are quite a few different types of approaches we can take to implement an eye tracking system, but we believe that trying to achieve good performance will require significant experimentation. The approaches we have seen have varied significantly.  We first explore the options then present a direction for our research.
+While taking advantage of the bright pupil effect is quite effective for determining whether a user at an arbitrary distance is looking at any precise location, it will not be able to present any useful information  about the user’s gaze outside of that direct position.  Thus, we are going to approach the problem of eye tracking by using the dark pupil approach.
+The dark pupil approach relies most heavily on having a high resolution image of the pupil, and then back calculating the user’s gaze by comparing the center of their pupil to predetermined locations. This is the effect that we will attempt to take advantage of.
