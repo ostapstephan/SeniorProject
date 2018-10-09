@@ -5,6 +5,7 @@
 \usepackage{mathrsfs}
 \usepackage{float}
 \usepackage[normalem]{ulem}
+\usepackage[left=1in, right=1in, top=1in, bottom=1in]{geometry}
 
 %\usepackage[citestyle=ieee,backend=biber]{biblatex}
 %\addbibresource{bibliography.bib}
@@ -15,6 +16,7 @@
 % \SetAlgorithmName{Alg.}{Algorithm}{List of Algorithms}
 
 \begin{document}
+\linespread{1.5}
 
 \title{$Eye_tRack$: Project Proposal for an Eye-Tracking System}
 \author{
@@ -29,18 +31,17 @@
 }
 
 \maketitle
-\renewcommand{\baselinestretch}{1.5} 
-\begin{abstract}
-\textbf{\\Project dates: September 2018 -- December 2018\\}
-\textnormal{
-	Abstract
-}
-\end{abstract}
+% \begin{abstract}
+% \textbf{\\Project dates: September 2018 -- December 2018\\}
+% \textnormal{
+% 	Abstract
+% }
+% \end{abstract}
 %\onecolumn \maketitle \normalsize \vfill
 \IEEEpeerreviewmaketitle
 
 \section{Project Description} \label{sec:proj_desc}
-The project that we propose is a desktop eye tracking system. The functional goal of the system is to determine the direction in which a person is looking while sitting at a desk. The purpose of this device \sout{will be to pass butter; oh my god} will be to help with productivity. The simplest application of the device would be to simply keep a record of where ones eyes are looking so that one could go back and analyze how much time was spent on various tasks or to provide an estimate of focus. A more interesting application would be to actively control other devices on your desk, namely -- but not limited to -- the computer. For example, by tracking where a user is looking at the computer screen, you can change the focus on different application windows or select different fields on an online form. With high enough accuracy one could potentially control a cursor this way as well. In addition to computer control, if you have other desktop accessories that are either connected to the computer or through a network then you could activate certian functions on these devices as well. For example, one could turn on a usb powered desk lamp, check notifications on their phone by glancing at it, or activate their IoT teapot and give a whole new meaning to the phrase, "watching water boil". Also, although we are focusing on a desktop mounted system, the technology behind the eye tracker would be easily adaptable to other environments and thus useful for a host of applications such as human intent aware robots, driver focus in a car, anti-staring neclaces that automatically say "My eyes are up here!". The applications are really only limited by the imagination and the relative speed/distance of the subject being observed to the eye tracking system.
+The project that we propose is a desktop eye tracking system. The functional goal of the system is to determine the direction in which a person is looking while sitting at a desk. The purpose of this device will be to help with productivity. The simplest application of the device would be to simply keep a record of where ones eyes are looking so that one could go back and analyze how much time was spent on various tasks or to provide an estimate of focus. A more interesting application would be to actively control other devices on your desk, namely -- but not limited to -- the computer. For example, by tracking where a user is looking at the computer screen, you can change the focus on different application windows or select different fields on an online form. With high enough accuracy one could potentially control a cursor this way as well. In addition to computer control, if you have other desktop accessories that are either connected to the computer or through a network then you could activate certian functions on these devices as well. For example, one could turn on a usb powered desk lamp, check notifications on their phone by glancing at it, or activate their IoT teapot and give a whole new meaning to the phrase, "watching water boil". Also, although we are focusing on a desktop mounted system, the technology behind the eye tracker would be easily adaptable to other environments and thus useful for a host of applications such as human intent aware robots or driver focus in car. The applications are really only limited by the imagination and the relative speed/distance of the subject being observed to the eye tracking system.
 
 \section{Background} \label{sec:background}
 \subsection{Eye Tracking}
@@ -64,7 +65,7 @@ As further research is performed, it will be necessary to learn more about speci
 \section{Proposition} \label{sec:proposition}
 There are quite a few different types of approaches we can take to implement an eye tracking system, but we believe that trying to achieve good performance will require significant experimentation. The approaches we have seen have varied significantly.  We first explore the options then present a direction for our research.
 
-	While taking advantage of the bright pupil/red eye effect is quite effective for determining whether a user at an arbitrary distance is looking at any precise location, it will not be able to present any useful information  about the user’s gaze outside of that direct position.  Thus, we are going to approach the problem of eye tracking by using the dark pupil approach.
+	While taking advantage of the bright pupil/red eye effect is quite effective for determining whether a user at an arbitrary distance is looking at the precise location of the camera, it will not be able to present any useful information  about the user’s gaze outside of that direct position.  Thus, we are going to approach the problem of eye tracking by using the dark pupil approach.
 	
 	The dark pupil approach relies most heavily on having a high resolution image of the pupil. By finding the center of the pupil, and comparing that to points of reflected light on the eyeball, we can back calculate the user’s gaze. To avoid having the user be distracted by bright lights, we will be using an array of infrared LEDs. IR light is not only invisible to humans, but also capable of passing through visible light filters which can aid with noise reduction. 
 	
