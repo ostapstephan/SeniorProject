@@ -1,2 +1,2 @@
 # SeniorProject
-Capstone/ Senior Project: Eye tracking
+Capstone/ Senior Project: Eye tracking for gaze direction.
