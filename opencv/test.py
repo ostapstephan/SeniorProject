@@ -3,10 +3,17 @@ import numpy as np
 import sys
 from time import time
 
+def distance(o1, o2):
+    (x1,y1,w1,h1) = o1
+    (x2,y2,w2,h2) = o2
+    c1 = ((x1+w1)/2,(y1+h1)/2)
+    c2 = ((x2+w2)/2,(y2+h2)/2)
+    return np.hypot(c1[0]-c2[0],c1[1]-c2[1])
+
 cv2.namedWindow("preview")
 vc = cv2.VideoCapture(int(sys.argv[1]))
-vc.set(3,1920)
-vc.set(4,1080)
+vc.set(3,int(sys.argv[2]))
+vc.set(4,int(sys.argv[3]))
 print(vc.get(3))
 print(vc.get(4))
 
@@ -17,7 +24,58 @@ else:
 
 ptime = time()
 nf = 0
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+glass_cascade = cv2.CascadeClassifier('haarcascade_eye_tree_eyeglasses.xml')
+reye_cascade = cv2.CascadeClassifier('haarcascade_righteye_2splits.xml')
+leye_cascade = cv2.CascadeClassifier('haarcascade_lefteye_2splits.xml')
+
+prevfaces = []
+preveyes = []
+
 while rval:
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    hasface = False;
+    haseyes = False;
+    for (x,y,w,h) in faces:
+        if len(prevfaces) > 0:
+            # print("Face: " + str(distance((x,y,w,h),prevfaces[0])))
+            if (distance((x,y,w,h),prevfaces[0])):
+                continue
+        if hasface:
+            continue
+
+        prevfaces = faces
+        hasface = True
+        cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+        roi_gray = gray[y:y+h, x:x+w]
+        roi_color = frame[y:y+h, x:x+w]
+        eyes = eye_cascade.detectMultiScale(roi_gray)
+        for (ex,ey,ew,eh) in eyes:
+            if len(preveyes) > 0:
+                print("Eyes: " + str(distance((ex,ey,ew,eh),preveyes[0])))
+                if (distance((ex,ey,ew,eh),preveyes[0]) > 25):
+                    continue
+            if haseyes:
+                continue
+
+            haseyes = True
+            preveyes = eyes
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+
+    if not hasface:
+        if len(prevfaces) > 0:
+            (x,y,w,h) = prevfaces[0]
+            cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = frame[y:y+h, x:x+w]
+            eyes = eye_cascade.detectMultiScale(roi_gray)
+            for (ex,ey,ew,eh) in eyes:
+                if not haseyes:
+                    cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+
+
     cv2.imshow("preview", frame)
     nf = nf + 1
     if time() - ptime > 5:
