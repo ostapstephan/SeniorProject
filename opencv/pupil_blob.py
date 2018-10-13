@@ -14,19 +14,26 @@ def distance(c1, c2):
 
 
 cv2.namedWindow("preview")
+cv2.namedWindow("preview2")
 cv2.namedWindow("previewblob")
 vc = cv2.VideoCapture(int(sys.argv[1]))
-vc.set(3,int(sys.argv[2]))
-vc.set(4,int(sys.argv[3]))
+vc2 = cv2.VideoCapture(int(sys.argv[2]))
+vc.set(3,int(sys.argv[3]))
+vc.set(4,int(sys.argv[4]))
 rw = vc.get(3)
 rh = vc.get(4)
-print(vc.get(3))
-print(vc.get(4))
+# print(vc.get(3))
+# print(vc.get(4))
 
 if vc.isOpened(): # try to get the first frame
     rval, frame = vc.read()
 else:
     rval = False
+
+if vc2.isOpened(): # try to get the first frame
+    rval2, frame2 = vc2.read()
+else:
+    rval2 = False
 
 # Setup SimpleBlobDetector parameters.
 params = cv2.SimpleBlobDetector_Params()
@@ -53,6 +60,9 @@ params.filterByInertia = True
 params.minInertiaRatio = 0.01
 detector = cv2.SimpleBlobDetector_create(params)
 reye_cascade = cv2.CascadeClassifier('haarcascade_righteye_2splits.xml')
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+face = None
+flost = 0
 
 kernel = np.ones((5,5),np.uint8)
 
@@ -60,8 +70,24 @@ ptime = time()
 nf = 0
 thresh1 = 70
 thresh2 = 135
-while rval:
+record = False
+while rval and rval2:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray4 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray4, 1.3, 5)
+    for f in faces:
+        if face is not None:
+            # print("Face: " + str(distance(f,face)))
+            if not (1 < distance(f,face) < 20):
+                continue
+        face = f
+        flost = 0
+    if flost < 5 and face is not None:
+        (x,y,w,h) = face
+        cv2.rectangle(frame2,(x,y),(x+w,y+h),(255,0,0),2)
+    else:
+        face = None
+
     gray3 = 255-gray
 
     gray2 = thresh1-gray
@@ -83,6 +109,7 @@ while rval:
     circles = cv2.HoughCircles(roi_gray, cv2.HOUGH_GRADIENT, 1, rows / 4,
                            param1=200, param2=10,
                            minRadius=10, maxRadius=20)
+    center = None
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for i in circles[0, :]:
@@ -102,15 +129,26 @@ while rval:
     blobframe = cv2.drawKeypoints(gray3, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
     cv2.imshow("preview", gray2)
+    cv2.imshow("preview2", frame2)
     if blobframe is not None:
         cv2.imshow("previewblob",blobframe)
 
+    if record and face is not None and center is not None and blobframe is not None:
+        (x,y,w,h) = face
+        (px,py) = center
+        if len(keypoints) > 4:
+            keypoints = keypoints[0:4]
+        else:
+            keypoints = keypoints+(4-len(keypoints))*[cv2.KeyPoint(2,-1,-1)]
+        print(','.join([str(x),str(y),str(px),str(py)]+[str(x.pt[0]) for x in keypoints]+[str(x.pt[1]) for x in keypoints]))
+
     nf = nf + 1
     if time() - ptime > 5:
-        print(str(nf/(time()-ptime)))
+        # print(str(nf/(time()-ptime)))
         ptime = time()
         nf = 0
     rval, frame = vc.read()
+    rval2, frame2 = vc2.read()
     key = cv2.waitKey(20)
     if key != -1:
     #     print(key)
@@ -119,7 +157,8 @@ while rval:
     if key == 27: # exit on ESC
         break
     elif key == 32:
-        cv2.imwrite('testimage.png',frame);
+        # cv2.imwrite('testimage.png',frame);
+        record = not record
     elif key == 104:
         thresh1 = thresh1 + 5
     elif key == 106:
