@@ -16,6 +16,9 @@ elif platform.startswith('linux'):
 wlbt = load_source('WalabotAPI', modulePath)
 wlbt.Init()
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 def PrintSensorTargets(targets):
     system('cls' if platform == 'win32' else 'clear')
     if targets:
@@ -207,7 +210,7 @@ while rval and rval2:
         targets = wlbt.GetSensorTargets()
         rasterImage, _, _, sliceDepth, power = wlbt.GetRawImageSlice()
         z = targets[0].zPosCm
-        print(','.join([str(numx*274.28),str(numy*270),str(x),str(y),str(z),str(px),str(py)]+[str(x.pt[0]) for x in keypoints]+[str(x.pt[1]) for x in keypoints]))
+        print(','.join([str(numx*960),str(numy*540),str(x),str(y),str(z),str(px),str(py)]+[str(x.pt[0]) for x in keypoints]+[str(x.pt[1]) for x in keypoints]))
 
     nf = nf + 1
     if time() - ptime > 5:
@@ -229,8 +232,9 @@ while rval and rval2:
     elif key == 32:
         # cv2.imwrite('testimage.png',frame);
         record = not record
+        eprint(record,numx,numy)
         if not record:
-            if numx == 7:
+            if numx == 2:
                 numx = -1
                 numy = numy + 1
             numx = numx + 1
