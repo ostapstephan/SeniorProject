@@ -1,3 +1,4 @@
+import lib.pbcvt as pbcvt
 import cv2
 import numpy as np
 import sys
@@ -24,21 +25,18 @@ else:
 
 ptime = time()
 nf = 0
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
-glass_cascade = cv2.CascadeClassifier('haarcascade_eye_tree_eyeglasses.xml')
-reye_cascade = cv2.CascadeClassifier('haarcascade_righteye_2splits.xml')
-leye_cascade = cv2.CascadeClassifier('haarcascade_lefteye_2splits.xml')
+face_cascade = cv2.CascadeClassifier('trained/haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier('trained/haarcascade_eye.xml')
+glass_cascade = cv2.CascadeClassifier('trained/haarcascade_eye_tree_eyeglasses.xml')
+reye_cascade = cv2.CascadeClassifier('trained/haarcascade_righteye_2splits.xml')
+leye_cascade = cv2.CascadeClassifier('trained/haarcascade_lefteye_2splits.xml')
 
 face = None
-eye = None
 flost = 0
-elost = 0
 while rval:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
     flost = flost+1
-    elost = elost+1
     for f in faces:
         if face is not None:
             # print("Face: " + str(distance(f,face)))
@@ -49,26 +47,24 @@ while rval:
 
     if flost < 5 and face is not None:
         (x,y,w,h) = face
+        x+=10
+        y+=10
+        w = int(w*0.85)
+        h = int(h*0.5)
         cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = frame[y:y+h, x:x+w]
         eyes = eye_cascade.detectMultiScale(roi_gray)
         for e in eyes:
-            if eye is not None:
-                # print("Eyes: " + str(distance(eye,e)))
-                if not (0 < distance(e,eye) < 10):
-                    continue
-            eye = e
-            elost = 0
+            (ex,ey,ew,eh) = e
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+            eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
+            eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
+            center = pbcvt.findPupil(roi_gray, int(ex), int(ey), int(ew), int(eh))
+            cv2.circle(eye_roi_color, center, 2, (100, 0, 100), 3)
 
-            if elost < 5:
-                (ex,ey,ew,eh) = e
-                cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-            else:
-                eye = None
     else:
         face = None
-        eye = None
 
 
     cv2.imshow("preview", frame)
