@@ -17,6 +17,10 @@ vc.set(3,int(sys.argv[2]))
 vc.set(4,int(sys.argv[3]))
 print(vc.get(3))
 print(vc.get(4))
+vout = None
+if (int(sys.argv[5])):
+    fourcc = cv2.VideoWriter_fourcc(*'x264')
+    vout = cv2.VideoWriter('pupiltest.mp4', fourcc, 24.0, (int(vc.get(3)),int(vc.get(4))))
 
 if vc.isOpened(): # try to get the first frame
     rval, frame = vc.read()
@@ -40,7 +44,7 @@ while rval:
     for f in faces:
         if face is not None:
             # print("Face: " + str(distance(f,face)))
-            if not (1 < distance(f,face) < 20):
+            if not (1 < distance(f,face) < 40):
                 continue
         face = f
         flost = 0
@@ -57,28 +61,32 @@ while rval:
         eyes = eye_cascade.detectMultiScale(roi_gray)
         for e in eyes:
             (ex,ey,ew,eh) = e
-            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
             eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
             eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
             center = pbcvt.findPupil(roi_gray, int(ex), int(ey), int(ew), int(eh))
-            cv2.circle(eye_roi_color, center, 2, (100, 0, 100), 3)
+            cv2.circle(eye_roi_color, center, 2, (0, 255, 0), 3)
 
     else:
         face = None
 
 
     cv2.imshow("preview", frame)
+    if vout:
+        vout.write(frame)
     nf = nf + 1
     if time() - ptime > 5:
         print(str(nf/(time()-ptime)))
         ptime = time()
         nf = 0
-    rval, frame = vc.read()
     key = cv2.waitKey(20)
     if key == 27: # exit on ESC
         break
     elif key == 32:
         cv2.imwrite('testimage.png',frame);
+    rval, frame = vc.read()
 
 cv2.destroyWindow("preview")
 vc.release()
+if vout:
+    vout.release()
