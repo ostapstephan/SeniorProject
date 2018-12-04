@@ -1,6 +1,8 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include <opencv2/core.hpp>
+
 bool rectInImage(cv::Rect rect, cv::Mat image);
 bool inMat(cv::Point p,int rows,int cols);
 cv::Mat matrixMagnitude(const cv::Mat &matX, const cv::Mat &matY);
