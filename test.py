@@ -17,10 +17,10 @@ vc.set(3,int(sys.argv[2]))
 vc.set(4,int(sys.argv[3]))
 print(vc.get(3))
 print(vc.get(4))
-vout = None
-if (int(sys.argv[5])):
-    fourcc = cv2.VideoWriter_fourcc(*'x264')
-    vout = cv2.VideoWriter('pupiltest.mp4', fourcc, 24.0, (int(vc.get(3)),int(vc.get(4))))
+# vout = None
+# if (int(sys.argv[5])):
+#     fourcc = cv2.VideoWriter_fourcc(*'x264')
+#     vout = cv2.VideoWriter('pupiltest.mp4', fourcc, 24.0, (int(vc.get(3)),int(vc.get(4))))
 
 if vc.isOpened(): # try to get the first frame
     rval, frame = vc.read()
@@ -65,15 +65,18 @@ while rval:
             eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
             eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
             center = pbcvt.findPupil(roi_gray, int(ex), int(ey), int(ew), int(eh))
-            cv2.circle(eye_roi_color, center, 2, (0, 255, 0), 3)
+            ret, thresh = cv2.threshold(eye_roi_gray, 127, 255, 0)
+            contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(eye_roi_gray, contours, -1, (0,255,0), 3)
+            cv2.circle(eye_roi_gray, center, 2, (0, 255, 0), 3)
 
     else:
         face = None
 
 
-    cv2.imshow("preview", frame)
-    if vout:
-        vout.write(frame)
+    cv2.imshow("preview", gray)
+    # if vout:
+    #     vout.write(frame)
     nf = nf + 1
     if time() - ptime > 5:
         print(str(nf/(time()-ptime)))
@@ -88,5 +91,5 @@ while rval:
 
 cv2.destroyWindow("preview")
 vc.release()
-if vout:
-    vout.release()
+# if vout:
+#     vout.release()
