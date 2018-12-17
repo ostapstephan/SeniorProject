@@ -13,10 +13,7 @@ def distance(o1, o2):
     return np.hypot(c1[0]-c2[0],c1[1]-c2[1])
 
 cv2.namedWindow("preview")
-cv2.namedWindow("preview2")
-vc = cv2.VideoCapture(int(sys.argv[1]))
-vc.set(3,int(sys.argv[2]))
-vc.set(4,int(sys.argv[3]))
+vc = cv2.VideoCapture('udpsrc port=6666 ! application/x-rtp, encoding-name=JPEG,payload=26 ! rtpjpegdepay ! jpegdec ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
 print(vc.get(3))
 print(vc.get(4))
 # vout = None
@@ -29,22 +26,43 @@ if vc.isOpened(): # try to get the first frame
 else:
     rval = False
 
+params = cv2.SimpleBlobDetector_Params()
+# Change thresholds
+params.minThreshold = 0
+params.maxThreshold = 255
+# Filter by Area.
+params.filterByArea = True
+params.minArea = 500
+# Filter by Circularity
+params.filterByCircularity = True
+params.minCircularity = 0.4
+# Filter by Convexity
+params.filterByConvexity = True
+params.minConvexity = 0.4
+# Filter by Inertia
+params.filterByInertia = True
+params.minInertiaRatio = 0.3
+# Create a detector with the parameters
+detector = cv2.SimpleBlobDetector_create(params)
+
 ptime = time()
 nf = 0
 while rval:
     roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    ret, thresh = cv2.threshold(-roi_gray, 35, 255, 0)
     # thresh = cv2.adaptiveThreshold(roi_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 0)
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.drawContours(frame, contours, -1, (0,0,255), 3)
-    for cont in contours:
-        if len(cont) > 5:# and cv2.contourArea(cont) > 1000:
-            ellipse = cv2.fitEllipse(cont)
-            cv2.ellipse(frame, ellipse, (0,0,255),2)
-            cv2.circle(frame, (int(ellipse[0][0]),int(ellipse[0][1])), 2, (255,0,0), 3)
+    # for cont in contours:
+    #     if len(cont) > 5:# and cv2.contourArea(cont) > 1000:
+    #         ellipse = cv2.fitEllipse(cont)
+    #         cv2.ellipse(frame, ellipse, (0,0,255),2)
+    #         cv2.circle(frame, (int(ellipse[0][0]),int(ellipse[0][1])), 2, (255,0,0), 3)
+
+    keypoints = detector.detect(255-roi_gray)
+    for point in keypoints:
+        frame = cv2.drawMarker(frame, (int(point.pt[0]),int(point.pt[1])), (0,0,255))
 
     cv2.imshow("preview", frame)
-    cv2.imshow("preview2", thresh)
     # if vout:
     #     vout.write(frame)
     nf = nf + 1
@@ -60,7 +78,6 @@ while rval:
     rval, frame = vc.read()
 
 cv2.destroyWindow("preview")
-cv2.destroyWindow("preview2")
 vc.release()
 # if vout:
 #     vout.release()
