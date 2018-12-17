@@ -3,6 +3,7 @@ import lib.pbcvt as pbcvt
 import cv2
 import numpy as np
 import sys
+from sklearn.cluster import KMeans
 from time import time
 
 def distance(o1, o2):
@@ -38,11 +39,16 @@ glass_cascade = cv2.CascadeClassifier('trained/haarcascade_eye_tree_eyeglasses.x
 reye_cascade = cv2.CascadeClassifier('trained/haarcascade_righteye_2splits.xml')
 leye_cascade = cv2.CascadeClassifier('trained/haarcascade_lefteye_2splits.xml')
 
+kernel = np.ones((5,5),np.uint8)
 # face = None
 # flost = 0
+thresh1 = 50
+thresh2 = 50
 while rval:
     roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     roi_color = frame
+    roi_gray = cv2.erode(roi_gray,kernel)
+    roi_gray = cv2.GaussianBlur(roi_gray, (5,5), 6, 6)
     # faces = face_cascade.detectMultiScale(gray, 1.3, 5)
     # flost = flost+1
     # for f in faces:
@@ -62,28 +68,45 @@ while rval:
     #     cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
     #     roi_gray = gray[y:y+h, x:x+w]
     #     roi_color = frame[y:y+h, x:x+w]
-    # eyes = eye_cascade.detectMultiScale(roi_gray)
-    thresh = None
+    eye_roi_gray = roi_gray[320:, :]
+    eye_roi_color = roi_color[320:, :]
+    # eyes = reye_cascade.detectMultiScale(roi_gray, scaleFactor=1.2)
+    # thresh = None
     # for e in eyes:
     #     (ex,ey,ew,eh) = e
-        # ex += 10
-        # ey += 10
-        # ew -= 10
-        # eh -= 10
-    # cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
-    # eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
-    # eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
-    center = pbcvt.findPupil(roi_gray, 0, 0, len(roi_gray[0]), len(roi_gray))#, int(ex), int(ey), int(ew), int(eh))
-    ret, thresh = cv2.threshold(roi_gray, 35, 255, 0)
-    # thresh = cv2.adaptiveThreshold(eye_roi_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 0)
+    #     ex += 30
+    #     ey += 40
+    #     ew -= 30
+    #     eh -= 40
+    #     cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
+    #     eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
+    #     eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
+        # center = pbcvt.findPupil(roi_gray, 0, 0, len(roi_gray[0]), len(roi_gray))#, int(ex), int(ey), int(ew), int(eh))
+    # if eye_roi_gray is not None:
+    #     roi_gray = eye_roi_gray
+    #     roi_color = eye_roi_color
+
+    # clt = KMeans(2)
+    # clt.fit(roi_gray)
+    # tv = clt.labels_[0]
+    # t = 0
+    # for x in clt.labels_:
+    #     if x != tv:
+    #         break
+    #     t += 1
+    # t = 255*t/len(clt.labels_)
+    # print(t)
+    print(thresh1)
+    ret, thresh = cv2.threshold(eye_roi_gray, thresh1, 255, 0)
+    # thresh = cv2.adaptiveThreshold(roi_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 0)
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # cv2.drawContours(eye_roi_color, contours, -1, (0,0,255), 3)
+    # cv2.drawContours(roi_color, contours, -1, (0,0,255), 3)
     for cont in contours:
-        if len(cont) > 5 and cv2.contourArea(cont) > 1000:
+        if len(cont) > 5 and 30000 > cv2.contourArea(cont) > 1000:
             ellipse = cv2.fitEllipse(cont)
-            cv2.ellipse(roi_color, ellipse, (0,0,255),2)
-            cv2.circle(roi_color, (int(ellipse[0][0]),int(ellipse[0][1])), 2, (255,0,0), 3)
-            cv2.circle(roi_color, center, 2, (0,255,0), 3)
+            cv2.ellipse(eye_roi_color, ellipse, (0,0,255),2)
+            cv2.circle(eye_roi_color, (int(ellipse[0][0]),int(ellipse[0][1])), 2, (255,0,0), 3)
+            # cv2.circle(roi_color, center, 2, (0,255,0), 3)
 
     # else:
     #     face = None
@@ -104,6 +127,14 @@ while rval:
         break
     elif key == 32:
         cv2.imwrite('testimage.png',frame);
+    elif key == 104:
+        thresh1 = thresh1 + 5
+    elif key == 106:
+        thresh1 = thresh1 - 5
+    elif key == 107:
+        thresh2 = thresh2 + 5
+    elif key == 108:
+        thresh2 = thresh2 - 5
     rval, frame = vc.read()
 
 cv2.destroyWindow("preview")
