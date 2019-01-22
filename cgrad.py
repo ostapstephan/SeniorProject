@@ -1,4 +1,4 @@
-import lib.pbcvt as pbcvt
+# import lib.pbcvt as pbcvt
 
 import cv2
 import numpy as np
@@ -17,6 +17,7 @@ cv2.namedWindow("preview")
 cv2.namedWindow("preview2")
 # vc = cv2.VideoCapture(int(sys.argv[1]))
 vc = cv2.VideoCapture('udpsrc port=6666 ! application/x-rtp, encoding-name=JPEG,payload=26 ! rtpjpegdepay ! jpegdec ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
+# vc = cv2.VideoCapture('http://192.168.1.252:8080/?action=stream')
 # vc.set(3,int(sys.argv[2]))
 # vc.set(4,int(sys.argv[3]))
 print(vc.get(3))
@@ -45,10 +46,9 @@ kernel = np.ones((5,5),np.uint8)
 thresh1 = 50
 thresh2 = 50
 while rval:
+    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
     roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     roi_color = frame
-    roi_gray = cv2.erode(roi_gray,kernel)
-    roi_gray = cv2.GaussianBlur(roi_gray, (5,5), 6, 6)
     # faces = face_cascade.detectMultiScale(gray, 1.3, 5)
     # flost = flost+1
     # for f in faces:
@@ -68,24 +68,38 @@ while rval:
     #     cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
     #     roi_gray = gray[y:y+h, x:x+w]
     #     roi_color = frame[y:y+h, x:x+w]
-    eye_roi_gray = roi_gray[320:, :]
-    eye_roi_color = roi_color[320:, :]
-    # eyes = reye_cascade.detectMultiScale(roi_gray, scaleFactor=1.2)
-    # thresh = None
-    # for e in eyes:
-    #     (ex,ey,ew,eh) = e
-    #     ex += 30
-    #     ey += 40
-    #     ew -= 30
-    #     eh -= 40
-    #     cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
-    #     eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
-    #     eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
-        # center = pbcvt.findPupil(roi_gray, 0, 0, len(roi_gray[0]), len(roi_gray))#, int(ex), int(ey), int(ew), int(eh))
-    # if eye_roi_gray is not None:
-    #     roi_gray = eye_roi_gray
-    #     roi_color = eye_roi_color
+    eyes = reye_cascade.detectMultiScale(roi_gray, scaleFactor=1.2)
+    thresh = None
+    found = False
+    if len(eyes) == 1:
+        found = True
+        (ex,ey,ew,eh) = eyes[0]
+        # ex += 10
+        ey += 40
+        # ew -= 10
+        eh -= 40
+        cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
 
+        eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
+
+        eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
+        eye_roi_gray = cv2.erode(eye_roi_gray,kernel)
+
+        roi_color[ey:ey+eh, ex:ex+ew, 0] = eye_roi_gray
+        roi_color[ey:ey+eh, ex:ex+ew, 1] = eye_roi_gray
+        roi_color[ey:ey+eh, ex:ex+ew, 2] = eye_roi_gray
+
+        eye_roi_color = roi_color[ey:ey+eh, ex:ex+ew]
+        # center = pbcvt.findPupil(roi_gray, 0, 0, len(roi_gray[0]), len(roi_gray))#, int(ex), int(ey), int(ew), int(eh))
+
+    else:
+        eye_roi_gray = roi_gray
+        eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
+        eye_roi_gray = cv2.erode(eye_roi_gray,kernel)
+        roi_color[:,:,0] = eye_roi_gray
+        roi_color[:,:,1] = eye_roi_gray
+        roi_color[:,:,2] = eye_roi_gray
+        eye_roi_color = roi_color
     # clt = KMeans(2)
     # clt.fit(roi_gray)
     # tv = clt.labels_[0]
@@ -111,10 +125,14 @@ while rval:
     # else:
     #     face = None
 
-
-    cv2.imshow("preview", frame)
     if thresh is not None:
-        cv2.imshow("preview2", thresh)
+        if found:
+            roi_gray[ey:ey+eh, ex:ex+ew] = thresh
+        else:
+            roi_gray = thresh
+
+    cv2.imshow("preview", roi_color)
+    cv2.imshow("preview2",roi_gray)
     # if vout:
     #     vout.write(frame)
     nf = nf + 1
@@ -139,6 +157,7 @@ while rval:
 
 cv2.destroyWindow("preview")
 cv2.destroyWindow("preview2")
+cv2.destroyWindow("preview3")
 vc.release()
 # if vout:
 #     vout.release()

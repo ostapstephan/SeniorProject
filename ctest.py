@@ -1,4 +1,4 @@
-import lib.pbcvt as pbcvt
+# import lib.pbcvt as pbcvt
 
 import cv2
 import numpy as np
@@ -14,6 +14,7 @@ def distance(o1, o2):
 
 cv2.namedWindow("preview")
 cv2.namedWindow("preview2")
+cv2.namedWindow("preview3")
 vc = cv2.VideoCapture(int(sys.argv[1]))
 vc.set(3,int(sys.argv[2]))
 vc.set(4,int(sys.argv[3]))
@@ -41,6 +42,7 @@ leye_cascade = cv2.CascadeClassifier('trained/haarcascade_lefteye_2splits.xml')
 # flost = 0
 while rval:
     roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    equalized = cv2.equalizeHist(roi_gray)
     roi_color = frame
     # faces = face_cascade.detectMultiScale(gray, 1.3, 5)
     # flost = flost+1
@@ -94,8 +96,9 @@ while rval:
     #     face = None
 
 
-    cv2.imshow("preview", frame)
-    cv2.imshow("preview2", thresh)
+    cv2.imshow("preview", roi_gray)
+    cv2.imshow("preview2", equalized)
+    cv2.imshow("preview3", thresh)
     # if vout:
     #     vout.write(frame)
     nf = nf + 1
@@ -112,6 +115,7 @@ while rval:
 
 cv2.destroyWindow("preview")
 cv2.destroyWindow("preview2")
+cv2.destroyWindow("preview3")
 vc.release()
 # if vout:
 #     vout.release()
