@@ -45,6 +45,7 @@ kernel = np.ones((5,5),np.uint8)
 # flost = 0
 thresh1 = 50
 thresh2 = 50
+eyes = None
 while rval:
     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
     roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -68,16 +69,16 @@ while rval:
     #     cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
     #     roi_gray = gray[y:y+h, x:x+w]
     #     roi_color = frame[y:y+h, x:x+w]
-    eyes = reye_cascade.detectMultiScale(roi_gray, scaleFactor=1.2)
-    thresh = None
+    if eyes is None:
+        eyes = reye_cascade.detectMultiScale(roi_gray, scaleFactor=1.2)
     found = False
     if len(eyes) == 1:
         found = True
         (ex,ey,ew,eh) = eyes[0]
         # ex += 10
-        ey += 40
+        # ey += 40
         # ew -= 10
-        eh -= 40
+        # eh -= 40
         cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,0,255),2)
 
         eye_roi_gray = roi_gray[ey:ey+eh, ex:ex+ew]
@@ -100,6 +101,8 @@ while rval:
         roi_color[:,:,1] = eye_roi_gray
         roi_color[:,:,2] = eye_roi_gray
         eye_roi_color = roi_color
+
+    thresh = None
     # clt = KMeans(2)
     # clt.fit(roi_gray)
     # tv = clt.labels_[0]
@@ -140,6 +143,7 @@ while rval:
         print(str(nf/(time()-ptime)))
         ptime = time()
         nf = 0
+        eyes = None
     key = cv2.waitKey(20)
     if key == 27: # exit on ESC
         break
