@@ -1,10 +1,10 @@
-import lib.pbcvt as pbcvt
+#import lib.pbcvt as pbcvt
 
 import cv2
 import numpy as np
 import sys
 from time import time
-
+'''
 def distance(o1, o2):
     (x1,y1,w1,h1) = o1
     (x2,y2,w2,h2) = o2
@@ -12,8 +12,28 @@ def distance(o1, o2):
     c2 = (x2+w2/2,y2+h2/2)
     return np.hypot(c1[0]-c2[0],c1[1]-c2[1])
 
+def label_corners(pointList):
+    if 2==len(pointlist): 
+        pts = {}
+        if pointList[0][1] < pointList[1][1]:
+            pts('top') = pointList[0]
+            pts('bottom') = pointList[1]
+        else: 
+            pts('top') = pointList[1]
+            pts('bottom') = pointList[0]
+        return pts, 2
+
+    elif len(pointlist) ==4:
+        for i in range(4):
+            pointList[i][0] # x coord of all 
+            #TODO
+
+    else:
+        return "Wrong point val. Supplied value = " + str(len(pointlist))
+'''
+
 cv2.namedWindow("preview")
-vc = cv2.VideoCapture('udpsrc port=6666 ! application/x-rtp, encoding-name=JPEG,payload=26 ! rtpjpegdepay ! jpegdec ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
+vc = cv2.VideoCapture(-1)
 print(vc.get(3))
 print(vc.get(4))
 # vout = None
@@ -32,7 +52,7 @@ params.minThreshold = 0
 params.maxThreshold = 255
 # Filter by Area.
 params.filterByArea = True
-params.minArea = 500
+params.minArea = 50
 # Filter by Circularity
 params.filterByCircularity = True
 params.minCircularity = 0.4
@@ -48,7 +68,9 @@ detector = cv2.SimpleBlobDetector_create(params)
 ptime = time()
 nf = 0
 while rval:
+    frame = cv2.rotate(frame, cv2.ROTATE_180)
     roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    roi_gray = 255-roi_gray
     # thresh = cv2.adaptiveThreshold(roi_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 0)
     # contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.drawContours(frame, contours, -1, (0,0,255), 3)
@@ -62,11 +84,23 @@ while rval:
     for point in keypoints:
         frame = cv2.drawMarker(frame, (int(point.pt[0]),int(point.pt[1])), (0,0,255))
 
+
+    
+
     cv2.imshow("preview", frame)
     # if vout:
     #     vout.write(frame)
     nf = nf + 1
     if time() - ptime > 5:
+        PointArray = []
+        for pointt in keypoints:
+            p = [int(pointt.pt[0]),int(pointt.pt[1])]
+            PointArray.append(p)
+
+        print(PointArray)
+
+
+
         print(str(nf/(time()-ptime)))
         ptime = time()
         nf = 0
