@@ -3,6 +3,7 @@
 dan.sh
 ostap.sh
 *.pdf
+compile_commands.json
 # Created by https://www.gitignore.io/api/latex,python,c++,vim,virtualenv
 
 ### C++ ###
