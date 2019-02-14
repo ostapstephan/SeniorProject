@@ -2,7 +2,24 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project("pupil")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+set(CMAKE_DEBUG_POSTFIX "d")
+
+if (NOT MSVC)
+    if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+        execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+        if (GCC_VERSION VERSION_LESS 4.7)
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+        else ()
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+        endif ()
+    else ()
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    endif ()
+endif ()
+
+add_subdirectory (lib)
 #----------------------------CMAKE & GLOBAL PROPERTIES-------------------------#
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -68,6 +85,7 @@ file(GLOB project_sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${project_sources} ${CMAKE_CURRENT_SOURCE_DIR}/include/pyboostcvconverter/pyboostcvconverter.hpp)
 target_include_directories(${PROJECT_NAME} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/lib"
         ${Boost_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
         ${PYTHON_INCLUDE_DIRS}
@@ -121,4 +139,5 @@ install(TARGETS ${PROJECT_NAME}
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
+
 add_subdirectory(src)
