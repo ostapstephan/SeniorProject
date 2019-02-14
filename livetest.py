@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import pbcvt
 import cv2
+import sys
 from time import time
 
 
@@ -22,20 +23,21 @@ def draw_ellipse(
         thickness, lineType, shift)
 
 
+cap = cv2.VideoCapture(int(sys.argv[1]))
 cv2.namedWindow('test')
-xx = 0
 while(True):
-    img = cv2.imread('data/render_eye_'+str(xx % 49)+'.png', cv2.IMREAD_COLOR)
-    xx += 1
+    ret, frame = cap.read()
 
     t = time()
-    out = pbcvt.findPupilEllipse(img)
+    out = pbcvt.findPupilEllipse(frame)
     print(time()-t)
-    draw_ellipse(img, (out[0], out[1]), (out[2]/2, out[3]/2), out[4],
+    draw_ellipse(frame, (out[0], out[1]), (out[2]/2, out[3]/2), out[4],
                  0, 360, (0, 0, 0), 2)
 
-    cv2.imshow('test', img)
+    cv2.imshow('test', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+# When everything done, release the capture
+cap.release()
 cv2.destroyAllWindows()
