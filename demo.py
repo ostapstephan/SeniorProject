@@ -1,26 +1,20 @@
+#!/usr/bin/env python
+import pbcvt
 import cv2
 import numpy as np
 import sys
-from sklearn.cluster import KMeans
 from time import time
 from calibrate import calibrate
 
-def distance(o1, o2):
-    (x1,y1,w1,h1) = o1
-    (x2,y2,w2,h2) = o2
-    c1 = (x1+w1/2,y1+h1/2)
-    c2 = (x2+w2/2,y2+h2/2)
-    return np.hypot(c1[0]-c2[0],c1[1]-c2[1])
-
 vc = cv2.VideoCapture(int(sys.argv[1]))
-# vc = cv2.VideoCapture('udpsrc port=6666 ! application/x-rtp, encoding-name=JPEG,payload=26 ! rtpjpegdepay ! jpegdec ! videoconvert ! appsink', cv2.CAP_GSTREAMER)
 # vc = cv2.VideoCapture('http://199.98.27.252:6680/?action=stream')
 print(vc.get(3))
 print(vc.get(4))
 # vout = None
 # if (int(sys.argv[5])):
 #     fourcc = cv2.VideoWriter_fourcc(*'x264')
-#     vout = cv2.VideoWriter('pupiltest.mp4', fourcc, 24.0, (int(vc.get(3)),int(vc.get(4))))
+#     vout = cv2.VideoWriter('pupiltest.mp4', fourcc, 24.0,
+#                           (int(vc.get(3)), int(vc.get(4))))
 
 roic = calibrate(vc)
 calibrated = False
@@ -32,14 +26,11 @@ cv2.namedWindow("preview2")
 ptime = time()
 nf = 0
 eye_cascade = cv2.CascadeClassifier('trained/haarcascade_eye.xml')
-glass_cascade = cv2.CascadeClassifier('trained/haarcascade_eye_tree_eyeglasses.xml')
-reye_cascade = cv2.CascadeClassifier('trained/haarcascade_righteye_2splits.xml')
-leye_cascade = cv2.CascadeClassifier('trained/haarcascade_lefteye_2splits.xml')
-kernel = np.ones((5,5),np.uint8)
+kernel = np.ones((5, 5), np.uint8)
 thresh1 = 50
 thresh2 = 11
 
-if vc.isOpened(): # try to get the first frame
+if vc.isOpened():
     rval, frame = vc.read()
 else:
     rval = False
@@ -49,13 +40,13 @@ while rval:
     roi_color = frame
 
     if calibrated:
-        cv2.rectangle(roi_color,roic[:2],roic[2:],(0,0,255),2)
+        cv2.rectangle(roi_color, roic[:2], roic[2:], (0, 0, 255), 2)
 
         eye_roi_gray = roi_gray[roic[1]:roic[3], roic[0]:roic[2]]
 
         eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
         # eye_roi_gray = cv2.erode(eye_roi_gray,kernel)
-        eye_roi_gray = cv2.GaussianBlur(eye_roi_gray, (25, 25), 0);
+        eye_roi_gray = cv2.GaussianBlur(eye_roi_gray, (25, 25), 0)
 
         roi_color[roic[1]:roic[3], roic[0]:roic[2], 0] = eye_roi_gray
         roi_color[roic[1]:roic[3], roic[0]:roic[2], 1] = eye_roi_gray
@@ -66,34 +57,28 @@ while rval:
     else:
         eye_roi_gray = roi_gray
         eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
-        eye_roi_gray = cv2.erode(eye_roi_gray,kernel)
-        roi_color[:,:,0] = eye_roi_gray
-        roi_color[:,:,1] = eye_roi_gray
-        roi_color[:,:,2] = eye_roi_gray
+        eye_roi_gray = cv2.erode(eye_roi_gray, kernel)
+        roi_color[:, :, 0] = eye_roi_gray
+        roi_color[:, :, 1] = eye_roi_gray
+        roi_color[:, :, 2] = eye_roi_gray
         eye_roi_color = roi_color
 
     thresh = None
-    # clt = KMeans(2)
-    # clt.fit(roi_gray)
-    # tv = clt.labels_[0]
-    # t = 0
-    # for x in clt.labels_:
-    #     if x != tv:
-    #         break
-    #     t += 1
-    # t = 255*t/len(clt.labels_)
-    # print(t)
     print(str(thresh1)+", "+str(thresh2))
     ret, thresh = cv2.threshold(eye_roi_gray, thresh1, 255, cv2.THRESH_BINARY)
-    # thresh = cv2.adaptiveThreshold(eye_roi_gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 115, thresh1)
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # thresh = cv2.adaptiveThreshold(eye_roi_gray, 255,
+    #                                cv2.ADAPTIVE_THRESH_MEAN_C,
+    #                                cv2.THRESH_BINARY, 115, thresh1)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE,
+                                           cv2.CHAIN_APPROX_SIMPLE)
     # cv2.drawContours(roi_color, contours, -1, (0,0,255), 3)
     for cont in contours:
         if len(cont) > 5 and 30000 > cv2.contourArea(cont) > 1000:
             conv = cv2.convexHull(cont)
             ellipse = cv2.fitEllipse(conv)
-            cv2.ellipse(eye_roi_color, ellipse, (0,0,255),2)
-            cv2.circle(eye_roi_color, (int(ellipse[0][0]),int(ellipse[0][1])), 2, (255,0,0), 3)
+            cv2.ellipse(eye_roi_color, ellipse, (0, 0, 255), 2)
+            cv2.circle(eye_roi_color, (int(ellipse[0][0]), int(ellipse[0][1])),
+                       2, (255, 0, 0), 3)
 
     if thresh is not None:
         if calibrated:
@@ -102,7 +87,7 @@ while rval:
             roi_gray = thresh
 
     cv2.imshow("preview", roi_color)
-    cv2.imshow("preview2",roi_gray)
+    cv2.imshow("preview2", roi_gray)
     # if vout:
     #     vout.write(frame)
     nf = nf + 1
@@ -112,10 +97,10 @@ while rval:
         nf = 0
         eyes = None
     key = cv2.waitKey(20)
-    if key == 27: # exit on ESC
+    if key == 27:  # exit on ESC
         break
     elif key == 32:
-        cv2.imwrite('testimage.png',frame);
+        cv2.imwrite('testimage.png', frame)
     elif key == 104:
         thresh1 = thresh1 + 5
     elif key == 106:

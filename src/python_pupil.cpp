@@ -50,7 +50,7 @@ namespace pbcvt {
 
 		if (found) {
 			el = pupil_tracker_out.elPupil;
-			el.center -= cv::Point2f(eye.cols, eye.rows)/2;
+			/* el.center -= cv::Point2f(eye.cols, eye.rows)/2; */
 			ret = make_tuple(el.center.x,el.center.y,el.size.width,el.size.height,el.angle);
 		} else {
 			ret = make_tuple(0);
