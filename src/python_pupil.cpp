@@ -3,8 +3,8 @@
 #include <boost/python.hpp>
 #include <pyboostcvconverter/pyboostcvconverter.hpp>
 
-#include <pupiltracker/PupilTracker.h>
-#include <pupiltracker/cvx.h>
+#include "pupiltracker/PupilTracker.h"
+#include "pupiltracker/cvx.h"
 #include "findEyeCenter.h"
 
 namespace pbcvt {
