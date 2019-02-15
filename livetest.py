@@ -31,7 +31,7 @@ while(True):
     t = time()
     out = pbcvt.findPupilEllipse(frame)
     print(time()-t)
-    draw_ellipse(frame, (out[0], out[1]), (out[2]/2, out[3]/2), out[4],
+    draw_ellipse(frame, (out[0], out[1]), (out[2], out[3]), out[4],
                  0, 360, (0, 0, 0), 2)
 
     cv2.imshow('test', frame)

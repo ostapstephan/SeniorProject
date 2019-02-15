@@ -18,7 +18,7 @@ namespace pbcvt {
 		eyeROI.y = ey;
 		eyeROI.width = ew;
 		eyeROI.height = eh;
-		
+
 		cv::Point p = findEyeCenter(face, eyeROI, "");
 		tuple ret = make_tuple(p.x,p.y);
 
@@ -27,7 +27,7 @@ namespace pbcvt {
 
 	tuple findPupilEllipse(cv::Mat eye) {
 		cv::RotatedRect el;
-		tuple ret;
+		cv::Mat1f mat = cv::Mat1f::zeros(1, 5);
 
 		pupiltracker::tracker_log log;
 
@@ -48,15 +48,12 @@ namespace pbcvt {
 		pupiltracker::findPupilEllipse_out pupil_tracker_out;
 		bool found = pupiltracker::findPupilEllipse(pupil_tracker_params, eye, pupil_tracker_out, log);
 
-		if (found) {
+		if (found)
 			el = pupil_tracker_out.elPupil;
-			/* el.center -= cv::Point2f(eye.cols, eye.rows)/2; */
-			ret = make_tuple(el.center.x,el.center.y,el.size.width,el.size.height,el.angle);
-		} else {
-			ret = make_tuple(0);
-		}
+		else
+			el = cv::RotatedRect(cv::Point2f(0,0), cv::Size2f(0,0), 0);
 
-		return ret;
+		return make_tuple(el.center.x, el.center.y, el.size.width/2, el.size.height/2, el.angle);
 
 	}
 
