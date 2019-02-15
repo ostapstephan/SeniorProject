@@ -33,7 +33,7 @@ namespace pbcvt {
 
 		pupiltracker::TrackerParams pupil_tracker_params;
 		pupil_tracker_params.Radius_Min = 20;
-		pupil_tracker_params.Radius_Max = 70;
+		pupil_tracker_params.Radius_Max = 80;
 		pupil_tracker_params.CannyThreshold1 = 20;
 		pupil_tracker_params.CannyThreshold2 = 40;
 		pupil_tracker_params.CannyBlur = 1.6;

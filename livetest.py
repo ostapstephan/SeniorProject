@@ -23,7 +23,8 @@ def draw_ellipse(
         thickness, lineType, shift)
 
 
-cap = cv2.VideoCapture(int(sys.argv[1]))
+# cap = cv2.VideoCapture(int(sys.argv[1]))
+cap = cv2.VideoCapture('http://199.98.27.220:7780/?action=stream')
 cv2.namedWindow('test')
 while(True):
     ret, frame = cap.read()

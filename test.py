@@ -25,7 +25,8 @@ def draw_ellipse(
 cv2.namedWindow('test')
 xx = 0
 while(True):
-    img = cv2.imread('data/render_eye_'+str(xx % 49)+'.png', cv2.IMREAD_COLOR)
+    # img = cv2.imread('data/render_eye_'+str(xx % 49)+'.png', cv2.IMREAD_COLOR)
+    img = cv2.imread('test.png', cv2.IMREAD_COLOR)
     xx += 1
 
     t = time()
