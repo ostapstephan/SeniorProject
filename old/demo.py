@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-import pbcvt
 import cv2
 import numpy as np
-import sys
+# import sys
 from time import time
 from calibrate import calibrate
 
-vc = cv2.VideoCapture(int(sys.argv[1]))
-# vc = cv2.VideoCapture('http://199.98.27.252:6680/?action=stream')
+# vc = cv2.VideoCapture(int(sys.argv[1]))
+vc = cv2.VideoCapture('http://raspberrypi0:8080/?action=stream')
 print(vc.get(3))
 print(vc.get(4))
 # vout = None

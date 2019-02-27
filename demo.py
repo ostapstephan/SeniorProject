@@ -25,7 +25,7 @@ def draw_ellipse(
 
 
 # vc = cv2.VideoCapture(int(sys.argv[1]))
-vc = cv2.VideoCapture('http://192.168.1.252:8080/?action=stream')
+vc = cv2.VideoCapture('http://raspberrypi0:8080/?action=stream')
 print(vc.get(3))
 print(vc.get(4))
 # vout = None

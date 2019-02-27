@@ -24,18 +24,27 @@ def draw_ellipse(
 
 cv2.namedWindow('test')
 xx = 0
+t1 = time()
+t0 = t1
 while(True):
-    # img = cv2.imread('data/render_eye_'+str(xx % 49)+'.png', cv2.IMREAD_COLOR)
-    img = cv2.imread('test.png', cv2.IMREAD_COLOR)
+    # img = cv2.imread('data/simulated/render_eye_'+str(xx % 49)+'.png',
+    #                  cv2.IMREAD_COLOR)
+    img = cv2.imread('data/p1-right/frames/'+str(xx % 939)+'-eye.png',
+                     cv2.IMREAD_COLOR)
     xx += 1
 
-    t = time()
     out = pbcvt.findPupilEllipse(img)
-    print(time()-t)
     draw_ellipse(img, (out[0], out[1]), (out[2], out[3]), out[4],
                  0, 360, (0, 0, 0), 2)
 
     cv2.imshow('test', img)
+
+    if xx % 10 == 0 and xx > 0:
+        t2 = time()
+        print('local: ', 10/(t2-t1))
+        print('total: ', xx/(t2-t0))
+        t1 = t2
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
