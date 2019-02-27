@@ -40,7 +40,7 @@ namespace pbcvt {
 		pupil_tracker_params.EarlyRejection = true;
 		pupil_tracker_params.EarlyTerminationPercentage = 95;
 		pupil_tracker_params.PercentageInliers = 20;
-		pupil_tracker_params.InlierIterations = 2;
+		pupil_tracker_params.InlierIterations = 3;
 		pupil_tracker_params.ImageAwareSupport = true;
 		pupil_tracker_params.StarburstPoints = 0;
 		//pupil_tracker_params.Seed = 0;

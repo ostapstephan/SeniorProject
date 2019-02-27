@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import pbcvt
 import cv2
+import math
+import numpy as np
 from time import time
 
 
@@ -22,10 +24,16 @@ def draw_ellipse(
         thickness, lineType, shift)
 
 
+with open('data/p1-right/pupil-ellipses.txt') as f:
+    s = f.read().split('\n')
+
+s = {int(x.split('|')[0]): [float(y) for y in x.split('|')[1:][0].split()] for x in s[:-1]}
+
 cv2.namedWindow('test')
 xx = 0
 t1 = time()
 t0 = t1
+totacc = 0
 while(True):
     # img = cv2.imread('data/simulated/render_eye_'+str(xx % 49)+'.png',
     #                  cv2.IMREAD_COLOR)
@@ -39,13 +47,23 @@ while(True):
 
     cv2.imshow('test', img)
 
+    if xx in s:
+        diff = [(s[xx][d]-out[d])**2 for d in range(4)] + [(np.rad2deg(s[xx][4]) + 180 - out[4])**2]
+        acc = math.sqrt(sum(diff))
+        print('acc: ', acc)
+        totacc += acc
+
     if xx % 10 == 0 and xx > 0:
         t2 = time()
         print('local: ', 10/(t2-t1))
         print('total: ', xx/(t2-t0))
         t1 = t2
 
+    if xx > 939:
+        break
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+print('total acc: ', acc/len(s))
 cv2.destroyAllWindows()
