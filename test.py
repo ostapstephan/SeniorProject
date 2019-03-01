@@ -5,6 +5,8 @@ import math
 import numpy as np
 from time import time
 
+TIMEOUT = 100
+
 
 def draw_ellipse(
         img, center, axes, angle,
@@ -24,16 +26,25 @@ def draw_ellipse(
         thickness, lineType, shift)
 
 
+def putEllipse(queue, image):
+    queue.put(pbcvt.findPupilEllipse(image, TIMEOUT))
+
+
 with open('data/p1-right/pupil-ellipses.txt') as f:
     s = f.read().split('\n')
 
-s = {int(x.split('|')[0]): [float(y) for y in x.split('|')[1:][0].split()] for x in s[:-1]}
+s = {int(x.split('|')[0]):
+     [float(y) for y in x.split('|')[1:][0].split()]
+     for x in s[:-1]}
 
 cv2.namedWindow('test')
 xx = 0
 t1 = time()
 t0 = t1
 totacc = 0
+out = None
+p = None
+prev = None
 while(True):
     # img = cv2.imread('data/simulated/render_eye_'+str(xx % 49)+'.png',
     #                  cv2.IMREAD_COLOR)
@@ -41,14 +52,16 @@ while(True):
                      cv2.IMREAD_COLOR)
     xx += 1
 
-    out = pbcvt.findPupilEllipse(img)
+    out = pbcvt.findPupilEllipse(img, TIMEOUT)
     draw_ellipse(img, (out[0], out[1]), (out[2], out[3]), out[4],
                  0, 360, (0, 0, 0), 2)
 
     cv2.imshow('test', img)
 
     if xx in s:
-        diff = [(s[xx][d]-out[d])**2 for d in range(4)] + [(np.rad2deg(s[xx][4]) + 180 - out[4])**2]
+        diff = [(s[xx][d]-out[d])**2 for d in range(4)]
+        diff += [(np.rad2deg(s[xx][4])
+                 + 180*(np.rad2deg(s[xx][4]) < 0) - out[4])**2]
         acc = math.sqrt(sum(diff))
         print('acc: ', acc)
         totacc += acc
@@ -65,5 +78,5 @@ while(True):
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-print('total acc: ', acc/len(s))
+print('total acc: ', totacc/len(s))
 cv2.destroyAllWindows()
