@@ -4,8 +4,9 @@ import cv2
 import math
 import numpy as np
 from time import time
+from params import pupil_tracker_params
 
-TIMEOUT = 100
+TIMEOUT = 10000
 
 
 def draw_ellipse(
@@ -52,7 +53,7 @@ while(True):
                      cv2.IMREAD_COLOR)
     xx += 1
 
-    out = pbcvt.findPupilEllipse(img, TIMEOUT)
+    out = pbcvt.findPupilEllipse(img, TIMEOUT, *pupil_tracker_params)
     draw_ellipse(img, (out[0], out[1]), (out[2], out[3]), out[4],
                  0, 360, (0, 0, 0), 2)
 
