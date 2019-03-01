@@ -56,7 +56,7 @@ while rval:
         cv2.rectangle(roi_color, roic[:2], roic[2:], (0, 0, 255), 2)
 
         eye_roi_gray = roi_gray[roic[1]:roic[3], roic[0]:roic[2]]
-        eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
+        # eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
         # eye_roi_gray = cv2.GaussianBlur(eye_roi_gray, (25, 25), 0)
 
         roi_color[roic[1]:roic[3], roic[0]:roic[2], 0] = eye_roi_gray
@@ -67,7 +67,7 @@ while rval:
 
     else:
         eye_roi_gray = roi_gray
-        eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
+        # eye_roi_gray = cv2.equalizeHist(eye_roi_gray)
         # eye_roi_gray = cv2.GaussianBlur(eye_roi_gray, (25, 25), 0)
 
         roi_color[:, :, 0] = eye_roi_gray

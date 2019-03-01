@@ -30,7 +30,7 @@ def calibrate(vc):
             (ex, ey, ew, eh) = eyes[0]
             cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (0, 0, 255), 2)
             maxex = max(maxex, ex+ew)
-            maxey = max(maxex, ey+eh)
+            maxey = max(maxey, ey+eh)
             minex = min(minex, ex)
             miney = min(miney, ey)
 
