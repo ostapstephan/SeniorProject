@@ -48,6 +48,10 @@ find_package(OpenCV REQUIRED)
 ## Python
 include("DetectPython")
 ## Boost
+# set(Boost_USE_MULTITHREADED ON)
+# find_package(Boost COMPONENTS thread REQUIRED)
+# find_package(Boost COMPONENTS chrono REQUIRED)
+# set(CMAKE_CXX_FLAGS "-lboost-thread -lboost-chrono")
 if(CMAKE_CXX_COMPILER_ID MATCHES MSVC)
     # Provisions for typical Boost compiled on Windows
     # Most commonly, Boost libraries are compiled statically on windows (change as necesssary)
@@ -94,6 +98,12 @@ target_link_libraries(${PROJECT_NAME}
         ${OpenCV_LIBRARIES}
         ${PYTHON_LIBRARIES}
         )
+
+# target_link_libraries(${PROJECT_NAME}
+#         Boost::thread
+#         Boost::chrono
+#         )
+
 
 if(CMAKE_CXX_COMPILER_ID MATCHES MSVC)
     # Provisions for typical Boost compiled on Windows
