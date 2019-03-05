@@ -4,6 +4,7 @@ import cv2
 import math
 import numpy as np
 from time import time
+from time import sleep
 from params import pupil_tracker_params
 
 TIMEOUT = 10000
@@ -47,6 +48,7 @@ out = None
 p = None
 prev = None
 while(True):
+    start = time()
     # img = cv2.imread('data/simulated/render_eye_'+str(xx % 49)+'.png',
     #                  cv2.IMREAD_COLOR)
     img = cv2.imread('data/p1-right/frames/'+str(xx % 939)+'-eye.png',
@@ -56,6 +58,9 @@ while(True):
     out = pbcvt.findPupilEllipse(img, TIMEOUT, *pupil_tracker_params)
     draw_ellipse(img, (out[0], out[1]), (out[2], out[3]), out[4],
                  0, 360, (0, 0, 0), 2)
+
+    if time()-start < (1/30):
+        sleep((1/30)-(time()-start))
 
     cv2.imshow('test', img)
 

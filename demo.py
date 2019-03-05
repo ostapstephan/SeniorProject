@@ -4,6 +4,9 @@ import cv2
 # import sys
 from time import time
 from calibrate import calibrate
+from params import pupil_tracker_params
+
+TIMEOUT = 100
 
 
 def draw_ellipse(
@@ -76,7 +79,7 @@ while rval:
 
         eye_roi_color = roi_color
 
-    out = pbcvt.findPupilEllipse(eye_roi_gray)
+    out = pbcvt.findPupilEllipse(eye_roi_gray, TIMEOUT, *pupil_tracker_params)
     draw_ellipse(eye_roi_color, (out[0], out[1]), (out[2], out[3]), out[4],
                  0, 360, (0, 255, 0), 2)
 
