@@ -5,6 +5,7 @@ ostap.sh
 *.pdf
 data/p1-right
 compile_commands.json
+.ccls*
 # Created by https://www.gitignore.io/api/latex,python,c++,vim,virtualenv
 
 ### C++ ###

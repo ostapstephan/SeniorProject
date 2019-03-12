@@ -54,10 +54,10 @@ for fname in images:
 
     # print(objpoints, imgpoints, gray.shape[::-1], None, None)
 
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints,
-                                                   imgpoints,
-                                                   gray.shape[::-1],
-                                                   None, None)
+ret, mtx, dist, rvecs, tvecs = cv2.fisheye.calibrate(objpoints,
+                                                     imgpoints,
+                                                     gray.shape[::-1],
+                                                     None, None)
 print('\n'.join([ret, mtx, dist, rvecs, tvecs, '']))
 print(j, 'out of', i, 'detected')
 cv2.destroyAllWindows()
