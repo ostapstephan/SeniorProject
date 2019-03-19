@@ -94,9 +94,9 @@ class WebcamVideoStream:
             
             raw_image = self.pipe.stdout.read(640*480*3)
             self.image =  numpy.fromstring(raw_image, dtype='uint8').reshape((480,640,3))
-
+            
             self.pipe.stdout.flush()
-
+            
             # otherwise, read the next frame from the stream
             # (self.grabbed, self.frame) = self.stream.read()
  
@@ -159,9 +159,7 @@ vs.stop()
 # the above code was given by the threading post
 #########################
 
-
 FFMPEG_BIN = "ffmpeg"
-
 #open a named pipe and start listening
 pipeinit0 = sp.Popen(['./r0.sh'], stdout = sp.PIPE )
 pipeinit1 = sp.Popen(['./r1.sh'], stdout = sp.PIPE )
@@ -197,19 +195,28 @@ print()
 print()
 
 sshPi1 = sp.Popen(['ssh', 'pi@10.0.0.5', '~/stream.sh'], stdout = sp.PIPE )
+
 vs1 = WebcamVideoStream(fifo = "fifo1").start()
 print()
 print()
 print()
 print('heyyyy')
 
+i=0
+cap = [None,None,None,None]
+j=0
+
+while i < 4: 
+    try:
+        cap[i] = cv2.VideoCapture(int(j))
+        print("accepted:",i,j)
+        i+=1
+    except:
+        print(i,j)
+        pass
+    j+=1
 # Cam 3 and 4
-cap2 = cv2.VideoCapture(int(sys.argv[1]))
-cap3 = cv2.VideoCapture(int(sys.argv[2]))
-if sys.argv[3]:
-    cap4 = cv2.VideoCapture(int(sys.argv[3]))
-if sys.argv[4]:
-    cap5 = cv2.VideoCapture(int(sys.argv[4]))
+
 
 # cap3.set(3,1280)
 # cap3.set(4,720)
@@ -218,10 +225,8 @@ cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
 cv2.namedWindow('Video2')
 cv2.namedWindow('Video3')
-if sys.argv[3]:
-    cv2.namedWindow('Video4')
-if sys.argv[4]:
-    cv2.namedWindow('Video5')
+cv2.namedWindow('Video4')
+cv2.namedWindow('Video5')
 
 time = 0
 
@@ -240,11 +245,10 @@ while True:
 
     image0 = vs0.read()
     image1 = vs1.read()
-    _, image2 = cap2.read()
-    _, image3 = cap3.read()
-     
-    _, image4 = cap4.read()
-    _, image5 = cap5.read()
+    _, image2 = cap[0].read()
+    _, image3 = cap[1].read() 
+    _, image4 = cap[2].read()
+    _, image5 = cap[3].read()
 
 
     if image0 is not None:
@@ -259,9 +263,7 @@ while True:
         cv2.imshow('Video4', image4)
     if image5 is not None:
         cv2.imshow('Video5', image5)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+ 
     key = cv2.waitKey(1) 
     if key & 0xFF == ord('q'):
         vs0.stop()
@@ -279,9 +281,9 @@ while True:
     # pipe0.stdout.flush()
     # pipe1.stdout.flush()
 
-cap2.release()
-cap3.release()
-cap4.release()
-cap5.release()
+cap[0].release()
+cap[1].release()
+cap[2].release()
+cap[3].release()
 
 cv2.destroyAllWindows()
