@@ -194,10 +194,10 @@ while True:
     elif key == 32:  # spacebar
         #cv2.imwrite('calb/0-'+str(time)+'.png', image0)
         cv2.imwrite('photos/0-'+str(time)+'.png', image0)
-        cv2.imwrite('photos/1-'+str(time)+'.png', image1)
-        cv2.imwrite('photos/2-'+str(time)+'.png', image2)
-        cv2.imwrite('photos/3-'+str(time)+'.png', image3)
-        cv2.imwrite('photos/4-'+str(time)+'.png', image4)
+        # cv2.imwrite('photos/1-'+str(time)+'.png', image1)
+        # cv2.imwrite('photos/2-'+str(time)+'.png', image2)
+        # cv2.imwrite('photos/3-'+str(time)+'.png', image3)
+        # cv2.imwrite('photos/4-'+str(time)+'.png', image4)
         # cv2.imwrite('photos/5-'+str(time)+'.png', image5)
         time += 1
 

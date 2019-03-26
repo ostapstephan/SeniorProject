@@ -6,7 +6,7 @@ import sys
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-cbrow, cbcol = 6, 9
+cbrow, cbcol = 7, 9
 # this is for 7,11 because you have to have inlier points.
 # https://stackoverflow.com/questions/31249037/calibrating-webcam-using-python-and-opencv-error/36441746
 
@@ -19,7 +19,7 @@ objp[:, :2] = np.mgrid[0:cbcol, 0:cbrow].T.reshape(-1, 2)
 objpoints = []  # 3d point in real world space
 imgpoints = []  # 2d points in image plane.
 
-images = glob.glob('calib/' + sys.argv[1] + '*.jpg')
+images = glob.glob('photos/' + sys.argv[1] + '*.png')
 
 # keep track of how many were detected out of the total images looked at
 i, j = 0, 0
@@ -28,6 +28,7 @@ for fname in images:
     i += 1
     img = cv2.imread(fname)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    print(fname)
     # gray = cv2.GaussianBlur(gray, (5,5),6,6)
 
     # Find the chess board corners
@@ -57,10 +58,10 @@ for fname in images:
 
 if len(sys.argv) > 2:
     print("FISHEYE!")
-    ret, mtx, dist, rvecs, tvecs = cv2.fisheye.calibrateCamera(objpoints,
-                                                               imgpoints,
-                                                               gray.shape[::-1],
-                                                               None, None)
+    ret, mtx, dist, rvecs, tvecs = cv2.fisheye.calibrate(objpoints,
+                                                         imgpoints,
+                                                         gray.shape[::-1],
+                                                         None, None)
 else:
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints,
                                                        imgpoints,
