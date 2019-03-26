@@ -2,43 +2,9 @@ import cv2
 import subprocess as sp
 import sys
 import numpy
-
-# import the necessary packages
 import datetime
 from threading import Thread
-import cv2
  
-class FPS:
-    def __init__(self):
-        # store the start time, end time, and total number of frames
-        # that were examined between the start and end intervals
-        self._start = None
-        self._end = None
-        self._numFrames = 0
- 
-    def start(self):
-        # start the timer
-        self._start = datetime.datetime.now()
-        return self
- 
-    def stop(self):
-        # stop the timer
-        self._end = datetime.datetime.now()
- 
-    def update(self):
-        # increment the total number of frames examined during the
-        # start and end intervals
-        self._numFrames += 1
- 
-    def elapsed(self):
-        # return the total number of seconds between the start and
-        # end interval
-        return (self._end - self._start).total_seconds()
- 
-    def fps(self):
-        # compute the (approximate) frames per second
-        return self._numFrames / self.elapsed()
-
 
 class WebcamVideoStream:
     def __init__(self, src=None,fifo=None):
@@ -109,53 +75,6 @@ class WebcamVideoStream:
         self.stopped = True
 
 
-'''
-# import the necessary packages
-from __future__ import print_function
-from imutils.video import WebcamVideoStream
-from imutils.video import FPS
-import argparse
-import imutils
-import cv2
- 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-n", "--num-frames", type=int, default=100,
-    help="# of frames to loop over for FPS test")
-ap.add_argument("-d", "--display", type=int, default=-1,
-    help="Whether or not frames should be displayed")
-args = vars(ap.parse_args())
-
-# created a *threaded* video stream, allow the camera sensor to warmup,
-# and start the FPS counter
-print("[INFO] sampling THREADED frames from webcam...")
-vs = WebcamVideoStream(src=0).start()
-fps = FPS().start()
- 
-# loop over some frames...this time using the threaded stream
-while fps._numFrames < args["num_frames"]: #while True:
-    # grab the frame from the threaded video stream and resize it
-    # to have a maximum width of 400 pixels
-    frame = vs.read()
-    # frame = imutils.resize(frame, width=400)
- 
-    # check to see if the frame should be displayed to our screen
-    if args["display"] > 0:
-        cv2.imshow("Frame", frame)
-        key = cv2.waitKey(1) & 0xFF
- 
-    # update the FPS counter
-    fps.update()
- 
-# stop the timer and display FPS information
-fps.stop()
-print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
- 
-# do a bit of cleanup
-cv2.destroyAllWindows()
-vs.stop()
-'''
 # the above code was given by the threading post
 #########################
 
@@ -206,17 +125,20 @@ i=0
 cap = [None,None,None,None]
 j=0
 
-while i < 4: 
+while i < 3: 
     try:
         cap[i] = cv2.VideoCapture(int(j))
+        ret, image = cap[i].read()
+        if not ret :
+            raise Exception
         print("accepted:",i,j)
         i+=1
     except:
-        print(i,j)
+        # print(i,j)
         pass
     j+=1
-# Cam 3 and 4
-
+    if j > 20:
+        break
 
 # cap3.set(3,1280)
 # cap3.set(4,720)
@@ -226,7 +148,7 @@ cv2.namedWindow('Video1')
 cv2.namedWindow('Video2')
 cv2.namedWindow('Video3')
 cv2.namedWindow('Video4')
-cv2.namedWindow('Video5')
+# cv2.namedWindow('Video5')
 
 time = 0
 
@@ -248,7 +170,7 @@ while True:
     _, image2 = cap[0].read()
     _, image3 = cap[1].read() 
     _, image4 = cap[2].read()
-    _, image5 = cap[3].read()
+ #   _, image5 = cap[3].read()
 
 
     if image0 is not None:
@@ -261,8 +183,8 @@ while True:
         cv2.imshow('Video3', image3)
     if image4 is not None:
         cv2.imshow('Video4', image4)
-    if image5 is not None:
-        cv2.imshow('Video5', image5)
+  #  if image5 is not None:
+  #      cv2.imshow('Video5', image5)
  
     key = cv2.waitKey(1) 
     if key & 0xFF == ord('q'):
@@ -270,12 +192,13 @@ while True:
         break
 
     elif key == 32:  # spacebar
-        cv2.imwrite('photos/cam0-'+str(time)+'.png', image0)
-        cv2.imwrite('photos/cam1-'+str(time)+'.png', image1)
-        cv2.imwrite('photos/cam2-'+str(time)+'.png', image2)
-        cv2.imwrite('photos/cam3-'+str(time)+'.png', image3)
-        cv2.imwrite('photos/cam4-'+str(time)+'.png', image4)
-        cv2.imwrite('photos/cam5-'+str(time)+'.png', image5)
+        #cv2.imwrite('calb/0-'+str(time)+'.png', image0)
+        cv2.imwrite('photos/0-'+str(time)+'.png', image0)
+        cv2.imwrite('photos/1-'+str(time)+'.png', image1)
+        cv2.imwrite('photos/2-'+str(time)+'.png', image2)
+        cv2.imwrite('photos/3-'+str(time)+'.png', image3)
+        cv2.imwrite('photos/4-'+str(time)+'.png', image4)
+        # cv2.imwrite('photos/5-'+str(time)+'.png', image5)
         time += 1
 
     # pipe0.stdout.flush()
@@ -284,6 +207,6 @@ while True:
 cap[0].release()
 cap[1].release()
 cap[2].release()
-cap[3].release()
+#cap[3].release()
 
 cv2.destroyAllWindows()

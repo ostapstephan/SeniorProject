@@ -5,7 +5,7 @@ import glob
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-cbrow, cbcol = 6, 10
+cbrow, cbcol = 6, 9
 # this is for 7,11 because you have to have inlier points.
 # https://stackoverflow.com/questions/31249037/calibrating-webcam-using-python-and-opencv-error/36441746
 
@@ -18,7 +18,7 @@ objp[:, :2] = np.mgrid[0:cbcol, 0:cbrow].T.reshape(-1, 2)
 objpoints = []  # 3d point in real world space
 imgpoints = []  # 2d points in image plane.
 
-images = glob.glob('calb/*.jpg')
+images = glob.glob('calb/*.png')
 
 # keep track of how many were detected out of the total images looked at
 i, j = 0, 0
@@ -58,7 +58,15 @@ ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints,
                                                    imgpoints,
                                                    gray.shape[::-1],
                                                    None, None)
-print('\n'.join([ret, mtx, dist, rvecs, tvecs, '']))
+'''
+ret = 
+mtx = camera matrix
+dist = distortion coefficient  
+rvecs = rotation vectors 
+tvecs = translation vectors 
+'''
+print(ret,mtx,dist,rvecs,tvecs)
+print('\n\n\n'.join([str(x) for x in [ret, mtx, dist, rvecs, tvecs]]))
 print(j, 'out of', i, 'detected')
 cv2.destroyAllWindows()
 

@@ -125,14 +125,6 @@ while rval:
 	frame = cv2.rotate(frame, cv2.ROTATE_180)
 	roi_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 	roi_gray = 255-roi_gray
-	# thresh = cv2.adaptiveThreshold(roi_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 0)
-	# contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-	# cv2.drawContours(frame, contours, -1, (0,0,255), 3)
-	# for cont in contours:
-	#	 if len(cont) > 5:# and cv2.contourArea(cont) > 1000:
-	#		 ellipse = cv2.fitEllipse(cont)
-	#		 cv2.ellipse(frame, ellipse, (0,0,255),2)
-	#		 cv2.circle(frame, (int(ellipse[0][0]),int(ellipse[0][1])), 2, (255,0,0), 3)
 
 	keypoints = detector.detect(255-roi_gray)
 	for point in keypoints:
@@ -157,8 +149,6 @@ while rval:
 
 		print(PointArray)
 
-
-
 		print(str(nf/(time()-ptime)))
 		ptime = time()
 		nf = 0
@@ -171,14 +161,5 @@ while rval:
 
 cv2.destroyWindow("preview")
 vc.release()
-
-
-
-
-#########################################
-#import lib.pbcvt as pbcvt
-
-
-
 # if vout:
 #	 vout.release()
