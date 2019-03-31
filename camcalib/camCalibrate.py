@@ -19,8 +19,9 @@ objp[:, :2] = np.mgrid[0:cbcol, 0:cbrow].T.reshape(-1, 2)
 objpoints = []  # 3d point in real world space
 imgpoints = []  # 2d points in image plane.
 
-images = glob.glob('photos/' + sys.argv[1] + '*.png')
+images = glob.glob('data/' + sys.argv[1] + '*.png')
 
+# print(images)
 # keep track of how many were detected out of the total images looked at
 i, j = 0, 0
 
@@ -28,7 +29,7 @@ for fname in images:
     i += 1
     img = cv2.imread(fname)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    print(fname)
+    # print(fname)
     # gray = cv2.GaussianBlur(gray, (5,5),6,6)
 
     # Find the chess board corners
@@ -55,9 +56,8 @@ for fname in images:
     # cv2.waitKey(100)
 
     # print(objpoints, imgpoints, gray.shape[::-1], None, None)
-
 if len(sys.argv) > 2:
-    print("FISHEYE!")
+    # print("FISHEYE!")
     ret, mtx, dist, rvecs, tvecs = cv2.fisheye.calibrate(objpoints,
                                                          imgpoints,
                                                          gray.shape[::-1],
@@ -67,6 +67,8 @@ else:
                                                        imgpoints,
                                                        gray.shape[::-1],
                                                        None, None)
+
+print(ret)
 '''
 ret =
 mtx = camera matrix

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pbcvt
+print("survived the import")
 import cv2
 import math
 import numpy as np

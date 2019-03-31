@@ -170,7 +170,7 @@ while True:
     _, image2 = cap[0].read()
     _, image3 = cap[1].read() 
     _, image4 = cap[2].read()
- #   _, image5 = cap[3].read()
+   # _, image5 = cap[3].read()
 
 
     if image0 is not None:
@@ -189,15 +189,16 @@ while True:
     key = cv2.waitKey(1) 
     if key & 0xFF == ord('q'):
         vs0.stop()
+        vs1.stop()
         break
 
     elif key == 32:  # spacebar
         #cv2.imwrite('calb/0-'+str(time)+'.png', image0)
         cv2.imwrite('photos/0-'+str(time)+'.png', image0)
-        # cv2.imwrite('photos/1-'+str(time)+'.png', image1)
-        # cv2.imwrite('photos/2-'+str(time)+'.png', image2)
-        # cv2.imwrite('photos/3-'+str(time)+'.png', image3)
-        # cv2.imwrite('photos/4-'+str(time)+'.png', image4)
+        cv2.imwrite('photos/1-'+str(time)+'.png', image1)
+        cv2.imwrite('photos/2-'+str(time)+'.png', image2)
+        cv2.imwrite('photos/3-'+str(time)+'.png', image3)
+        cv2.imwrite('photos/4-'+str(time)+'.png', image4)
         # cv2.imwrite('photos/5-'+str(time)+'.png', image5)
         time += 1
 
