@@ -210,15 +210,17 @@ while True:
         # result = pupil_detector.detect(frame, roi , "algorithm" )
         # print(result['ellipse'])
         # print(result['circle_3d'])
-        # draw_ellipse(frame.img,
-        #         result['ellipse']['center'],result['ellipse']['axes'],
-        #         result['ellipse']['angle'], 0,360,(255,255,0),2 )
         out = findPupilEllipse(frame.img, TIMEOUT, *pupil_tracker_params)
         draw_ellipse(
             frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360,
             (0, 0, 0), 2
         )
-        result = pupil_detector.detect(frame, roi, "algorithm")
+        result = pupil_detector.detect(frame, roi, "roi")
+        draw_ellipse(
+            frame.img, result['ellipse']['center'], result['ellipse']['axes'],
+            result['ellipse']['angle'], 0, 360, (255, 255, 0), 2
+        )
+        print(result['circle_3d'])
     except Exception:
         print('nah fam')
 
@@ -238,5 +240,5 @@ while True:
 
 vs0.stop()
 vs1.stop()
-
+time.sleep(1)
 cv2.destroyAllWindows()
