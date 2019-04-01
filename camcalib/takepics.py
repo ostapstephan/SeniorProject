@@ -5,6 +5,9 @@ import subprocess as sp
 import numpy
 # cap0,cap1,cap2,cap3= 0,0,0,0
 
+''' Depreciated use streamAndCapture '''
+
+
 FFMPEG_BIN = "ffmpeg"
 
 # cap0 = cv2.VideoCapture('udp://10.0.0.2:5001')

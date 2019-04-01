@@ -3,6 +3,11 @@ import cv2
 import glob
 import sys
 
+# Run an intrinsic checkerboard calibration for the camera of your specification 
+# to run this just run 
+# python camCalibrate.py (number of the camera you want to calibrate in the data folder)
+
+
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 

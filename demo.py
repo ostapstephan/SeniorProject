@@ -3,7 +3,7 @@ import pbcvt
 import cv2
 # import sys
 from time import time
-from calibrate import calibrate
+from calibrateHaar import calibrate
 from params import pupil_tracker_params
 
 TIMEOUT = 100

@@ -3,7 +3,9 @@ import subprocess as sp
 import sys
 import numpy
 import datetime
- 
+
+#simple script for the testing of homography with only 2 cameras 
+#only uses 2 webcams
 
 i=0
 cap = [None,None]

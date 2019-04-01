@@ -1,3 +1,5 @@
+# This is a collection of all the intrinsic parameters of our pi and web cameras. 
+
 cam0mat = [
     [517.03587615, 0, 317.22014251],[0., 514.36431945, 241.10158634],[0., 0., 1.]
 ]

@@ -26,7 +26,6 @@ raspivid -t 0 -w 640 -h 480 -fps 30 -o - | nc 10.0.0.2 5002
 view the other devices on an ip 
 nmap 10.0.0.1/24
 
-
 ssh into the eye pi
 ssh pi@10.0.0.3 -p 6622
 
