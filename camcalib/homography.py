@@ -3,11 +3,11 @@ import cv2
 from time import time
 import sys
 
-from cameras import cam8mat as cameraMatrix0
-from cameras import cam8dcoef as distCoeffs0
+from cameras import cam2mat as cameraMatrix0
+from cameras import cam2dcoef as distCoeffs0
 
-from cameras import cam9mat as cameraMatrix1
-from cameras import cam9dcoef as distCoeffs1
+from cameras import cam3mat as cameraMatrix1
+from cameras import cam3dcoef as distCoeffs1
 
 cameraMatrix0 = np.array(cameraMatrix0)
 distCoeffs0 = np.array(distCoeffs0)
