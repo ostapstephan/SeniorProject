@@ -15,7 +15,17 @@ sys.path.append(os.path.abspath('../'))
 from pbcvt import findPupilEllipse
 from params import pupil_tracker_params
 
+from cameras import cam0mat as cameraMatrix0
+from cameras import cam0dcoef as distCoeffs0
+
+cameraMatrix0 = np.array(cameraMatrix0)
+distCoeffs0 = np.array(distCoeffs0)
+
+# from cameras import cam1mat as cameraMatrix1
+# from cameras import cam1dcoef as distCoeffs1
+
 TIMEOUT = 10000
+FFMPEG_BIN = "ffmpeg"
 '''
 This code will be able to open fast and low latency streams
 and capture and save photos from webcams and network raspberry pi's
@@ -40,8 +50,6 @@ class WebcamVideoStream:
         else:
             print('error please specify what camera type ')
             raise (Exception)
-
-        # FMPEG_BIN = "ffmpeg"
 
         if not fifo:
             fifo = 'fifo0'
@@ -120,13 +128,19 @@ def draw_ellipse(
         lineType=cv2.LINE_AA,
         shift=10
 ):
-    center = (
-        int(round(center[0] * 2**shift)), int(round(center[1] * 2**shift))
-    )
+    center = (int(round(center[0] * 2**shift)), int(round(center[1] * 2**shift)))
     axes = (int(round(axes[0] * 2**shift)), int(round(axes[1] * 2**shift)))
     cv2.ellipse(
-        img, center, axes, angle, startAngle, endAngle, color, thickness,
-        lineType, shift
+        img,
+        center,
+        axes,
+        angle,
+        startAngle,
+        endAngle,
+        color,
+        thickness,
+        lineType,
+        shift,
     )
 
 
@@ -142,6 +156,34 @@ class Frame(object):
         self.gray = np.zeros((self.height, self.width))
         self.img = np.zeros((self.height, self.width, 3))
         self.timestamp = time.time()
+
+
+def draw_axis(img, R, t, K, dist):
+    # unit is mm
+    try:
+        rotV, _ = cv2.Rodrigues(R)
+        points = np.float32([
+            [10, 0, 0],
+            [0, 10, 0],
+            [0, 0, 20],
+            [0, 0, 0],
+        ]).reshape(-1, 3)
+        axisPoints, _ = cv2.projectPoints(points, rotV, t, K, dist)
+        img = cv2.line(
+            img, tuple(axisPoints[3].ravel()), tuple(axisPoints[0].ravel()),
+            (255, 0, 0), 3
+        )
+        img = cv2.line(
+            img, tuple(axisPoints[3].ravel()), tuple(axisPoints[1].ravel()),
+            (0, 255, 0), 3
+        )
+        img = cv2.line(
+            img, tuple(axisPoints[3].ravel()), tuple(axisPoints[2].ravel()),
+            (0, 0, 255), 3
+        )
+    except OverflowError:
+        pass
+    return img
 
 
 # class Roi(object):
@@ -162,15 +204,12 @@ class Frame(object):
 # self.nX = 0
 # self.nY = 0
 
-FFMPEG_BIN = "ffmpeg"
 # open a named pipe for each pi and start listening
 pipeinit0 = sp.Popen(['./r0.sh'], stdout=sp.PIPE)
 pipeinit1 = sp.Popen(['./r1.sh'], stdout=sp.PIPE)
 
 # start streaming from the pi to this computer
-sshPi0 = sp.Popen(
-    ['ssh', 'pi@10.0.0.3', '-p', '6622', '~/stream.sh'], stdout=sp.PIPE
-)
+sshPi0 = sp.Popen(['ssh', 'pi@10.0.0.3', '-p', '6622', '~/stream.sh'], stdout=sp.PIPE)
 vs0 = WebcamVideoStream(fifo="fifo0").start()
 print()
 print()
@@ -193,6 +232,38 @@ cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
 
 pupil_detector = Detector_3D()
+pupil_detector.set_2d_detector_property('pupil_size_max', 80)
+pupil_detector.set_2d_detector_property('pupil_size_min', 20)
+pupil_detector.set_2d_detector_property('ellipse_roundness_ratio', 0.1)
+# pupil_detector.set_2d_detector_property('coarse_filter_max', 240)
+# pupil_detector.set_2d_detector_property('intensity_range', 30)
+# pupil_detector.set_2d_detector_property('canny_treshold', 200)
+pupil_detector.set_2d_detector_property('canny_ration', 3)
+# pupil_detector.set_2d_detector_property('support_pixel_ratio_exponent', 3.0)
+pupil_detector.set_2d_detector_property('initial_ellipse_fit_treshhold', 1.5)
+'''
+'coarse_detection': True,
+'coarse_filter_min': 128,
+'coarse_filter_max': 280,
+'intensity_range': 23,
+'blur_size': 5,
+'canny_treshold': 160,
+'canny_ration': 2,
+'canny_aperture': 5,
+'pupil_size_max': 100,
+'pupil_size_min': 10,
+'strong_perimeter_ratio_range_min': 0.8,
+'strong_perimeter_ratio_range_max': 1.1,
+'strong_area_ratio_range_min': 0.6,
+'strong_area_ratio_range_max': 1.1,
+'contour_size_min': 5,
+'ellipse_roundness_ratio': 0.1,
+'initial_ellipse_fit_treshhold': 1.8,
+'final_perimeter_ratio_range_min': 0.6,
+'final_perimeter_ratio_range_max': 1.2,
+'ellipse_true_support_min_dist': 2.5,
+'support_pixel_ratio_exponent': 2.0
+'''
 
 roi = Roi(frame.img.shape)
 
@@ -206,23 +277,43 @@ while True:
         frame.img = image0
         frame.timestamp = time.time()
 
-    try:
-        # result = pupil_detector.detect(frame, roi , "algorithm" )
-        # print(result['ellipse'])
-        # print(result['circle_3d'])
-        out = findPupilEllipse(frame.img, TIMEOUT, *pupil_tracker_params)
-        draw_ellipse(
-            frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360,
-            (0, 0, 0), 2
-        )
-        result = pupil_detector.detect(frame, roi, "roi")
-        draw_ellipse(
-            frame.img, result['ellipse']['center'], result['ellipse']['axes'],
-            result['ellipse']['angle'], 0, 360, (255, 255, 0), 2
-        )
-        print(result['circle_3d'])
-    except Exception:
-        print('nah fam')
+    # result = pupil_detector.detect(frame, roi , "algorithm" )
+    # print(result['ellipse'])
+    # print(result['circle_3d'])
+    out = findPupilEllipse(frame.img, TIMEOUT, *pupil_tracker_params)
+    draw_ellipse(
+        frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360, (0, 0, 0), 2
+    )
+    print(
+        "ROI0!",
+        ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
+    )
+    result = pupil_detector.detect(frame, roi, "Roi")
+    print(
+        "ROI1!",
+        ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
+    )
+    draw_ellipse(
+        frame.img, result['ellipse']['center'], result['ellipse']['axes'],
+        result['ellipse']['angle'], 0, 360, (255, 255, 0), 2
+    )
+    print(result['circle_3d'])
+    print(result['sphere'])
+    # gaze = np.subtract(result['circle_3d']['center'], result['sphere']['center'])
+    # gaze = gaze / np.linalg.norm(gaze)
+    center = (-10, 10, -100)
+    gaze = np.subtract((out[0], out[1], 80), center)
+    gaze = gaze / np.linalg.norm(gaze)
+    print(gaze)
+    x = np.arccos(np.dot(gaze, [1, 0, 0])) * 180 / np.pi
+    y = np.arccos(np.dot(gaze, [0, 1, 0])) * 180 / np.pi
+    z = np.arccos(np.dot(gaze, [0, 0, 1])) * 180 / np.pi
+    R, blah = cv2.Rodrigues(np.array([x, y, z]))
+    t = result['sphere']['center']
+    t = center
+    print(t)
+    print(R)
+    draw_axis(frame.img, R, t, cameraMatrix0, distCoeffs0)
 
     if image0 is not None:
         cv2.imshow('Video0', frame.img)
