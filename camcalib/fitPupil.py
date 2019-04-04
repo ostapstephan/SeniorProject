@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import time
 # import datetime
+from matrix import get_pupil_transformation_matrix
 from threading import Thread
 sys.path.append(os.path.abspath('../pupil/pupil_src/shared_modules'))
 from pupil_detectors import Detector_3D
@@ -232,15 +233,15 @@ cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
 
 pupil_detector = Detector_3D()
-pupil_detector.set_2d_detector_property('pupil_size_max', 80)
-pupil_detector.set_2d_detector_property('pupil_size_min', 20)
-pupil_detector.set_2d_detector_property('ellipse_roundness_ratio', 0.1)
+# pupil_detector.set_2d_detector_property('pupil_size_max', 80)
+pupil_detector.set_2d_detector_property('pupil_size_min', 30)
+# pupil_detector.set_2d_detector_property('ellipse_roundness_ratio', 0.1)
 # pupil_detector.set_2d_detector_property('coarse_filter_max', 240)
 # pupil_detector.set_2d_detector_property('intensity_range', 30)
 # pupil_detector.set_2d_detector_property('canny_treshold', 200)
-pupil_detector.set_2d_detector_property('canny_ration', 3)
+# pupil_detector.set_2d_detector_property('canny_ration', 3)
 # pupil_detector.set_2d_detector_property('support_pixel_ratio_exponent', 3.0)
-pupil_detector.set_2d_detector_property('initial_ellipse_fit_treshhold', 1.5)
+# pupil_detector.set_2d_detector_property('initial_ellipse_fit_treshhold', 1.5)
 '''
 'coarse_detection': True,
 'coarse_filter_min': 128,
@@ -280,10 +281,10 @@ while True:
     # result = pupil_detector.detect(frame, roi , "algorithm" )
     # print(result['ellipse'])
     # print(result['circle_3d'])
-    out = findPupilEllipse(frame.img, TIMEOUT, *pupil_tracker_params)
-    draw_ellipse(
-        frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360, (0, 0, 0), 2
-    )
+    # out = findPupilEllipse(frame.img, TIMEOUT, *pupil_tracker_params)
+    # draw_ellipse(
+    #     frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360, (0, 0, 0), -1
+    # )
     print(
         "ROI0!",
         ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
@@ -294,23 +295,26 @@ while True:
         ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
     )
     draw_ellipse(
-        frame.img, result['ellipse']['center'], result['ellipse']['axes'],
-        result['ellipse']['angle'], 0, 360, (255, 255, 0), 2
+        frame.img, result['ellipse']['center'],
+        [x / 2 for x in result['ellipse']['axes']], result['ellipse']['angle'], 0, 360,
+        (255, 255, 0), 2
     )
     print(result['circle_3d'])
     print(result['sphere'])
-    # gaze = np.subtract(result['circle_3d']['center'], result['sphere']['center'])
-    # gaze = gaze / np.linalg.norm(gaze)
-    center = (-10, 10, -100)
-    gaze = np.subtract((out[0], out[1], 80), center)
+    gaze = np.subtract(result['circle_3d']['center'], result['sphere']['center'])
+    gaze = gaze / np.linalg.norm(gaze)
     gaze = gaze / np.linalg.norm(gaze)
     print(gaze)
     x = np.arccos(np.dot(gaze, [1, 0, 0])) * 180 / np.pi
     y = np.arccos(np.dot(gaze, [0, 1, 0])) * 180 / np.pi
     z = np.arccos(np.dot(gaze, [0, 0, 1])) * 180 / np.pi
-    R, blah = cv2.Rodrigues(np.array([x, y, z]))
-    t = result['sphere']['center']
-    t = center
+    # R, blah = cv2.Rodrigues(np.array([x, y, z]))
+    # t = result['sphere']['center']
+    H = get_pupil_transformation_matrix(
+        result['circle_3d']['normal'], result['circle_3d']['center']
+    )
+    t = H[:3, 3]
+    R = H[:3, :3]
     print(t)
     print(R)
     draw_axis(frame.img, R, t, cameraMatrix0, distCoeffs0)
