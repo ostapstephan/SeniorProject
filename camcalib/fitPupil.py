@@ -297,7 +297,7 @@ pupil_detector.set_2d_detector_property('pupil_size_min', 30)
 vout = None
 if int(sys.argv[1]):
     fourcc = cv2.VideoWriter_fourcc(*'x264')
-    vout = cv2.VideoWriter('pupilnorm.mp4', fourcc, 32.0, frame.img.shape)
+    vout = cv2.VideoWriter('pupilnorm.mp4', fourcc, 24, (int(frame.img.shape[0]), int(frame.img.shape[1])))
 
 roi = Roi(frame.img.shape)
 offset = [-0.64, -1.28, 0.0]
@@ -381,9 +381,9 @@ while True:
         # time += 1
         pass
 
-vs0.stop()
-vs1.stop()
-time.sleep(1)
-cv2.destroyAllWindows()
 if vout:
     vout.release()
+time.sleep(1)
+cv2.destroyAllWindows()
+vs0.stop()
+vs1.stop()
