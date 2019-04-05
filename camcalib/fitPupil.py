@@ -15,7 +15,7 @@ from methods import Roi
 sys.path.append(os.path.abspath('../'))
 # from calibrateHaar import calibrate
 # from pbcvt import findPupilEllipse
-from params import pupil_tracker_params
+# from params import pupil_tracker_params
 
 from cameras import cam0mat as cameraMatrix0
 from cameras import cam0dcoef as distCoeffs0
@@ -164,14 +164,16 @@ def draw_axis(img, R, t, K, dist):
     # unit is mm
     try:
         rotV, _ = cv2.Rodrigues(R)
-        points = np.float32([
-            [0, 0, 5],
-            [0, 5, 0],
-            [5, 0, 0],
-            [0, -5, 0],
-            [-5, 0, 0],
-            [0, 0, 0],
-        ]).reshape(-1, 3)
+        points = np.float32(
+            [
+                [0, 0, 5],
+                [0, 5, 0],
+                [5, 0, 0],
+                [0, -5, 0],
+                [-5, 0, 0],
+                [0, 0, 0],
+            ]
+        ).reshape(-1, 3)
         axisPoints, _ = cv2.projectPoints(points, rotV, t, K, dist)
         img = cv2.line(
             img, tuple(axisPoints[5].ravel()), tuple(axisPoints[0].ravel()),
@@ -197,10 +199,11 @@ def draw_axis(img, R, t, K, dist):
         pass
     return img
 
+
 def draw_gaze(img, pupil, eye, off, K, dist):
     # unit is mm
     try:
-        rotV, _ = cv2.Rodrigues(np.array([0.0,0.0,0.0]))
+        rotV, _ = cv2.Rodrigues(np.array([0.0, 0.0, 0.0]))
         t = np.array(off)
         points = np.float32([
             pupil,
@@ -297,7 +300,9 @@ pupil_detector.set_2d_detector_property('pupil_size_min', 30)
 vout = None
 if int(sys.argv[1]):
     fourcc = cv2.VideoWriter_fourcc(*'x264')
-    vout = cv2.VideoWriter('pupilnorm.mp4', fourcc, 24, (int(frame.img.shape[0]), int(frame.img.shape[1])))
+    vout = cv2.VideoWriter(
+        'pupilnorm.mp4', fourcc, 24, (int(frame.img.shape[1]), int(frame.img.shape[0]))
+    )
 
 roi = Roi(frame.img.shape)
 offset = [-0.64, -1.28, 0.0]
@@ -323,25 +328,31 @@ while True:
     # draw_ellipse(
     #     frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360, (0, 0, 0), -1
     # )
-    print("ROI0!",';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]]) )
+    print(
+        "ROI0!",
+        ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
+    )
     result = pupil_detector.detect(frame, roi, True)
-    print("ROI1!",';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]]) )
+    print(
+        "ROI1!",
+        ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
+    )
 
     draw_ellipse(
         frame.img, result['ellipse']['center'],
         [x / 2 for x in result['ellipse']['axes']], result['ellipse']['angle'], 0, 360,
         (255, 255, 0), 2
     )
-    
+
     print(result['circle_3d'])
     print(result['sphere'])
-#     gaze = np.array(result['circle_3d']['normal'])
+    #     gaze = np.array(result['circle_3d']['normal'])
     # x = np.arccos(np.dot(gaze, [1, 0, 0])) * 180 / np.pi
     # y = np.arccos(np.dot(gaze, [0, 1, 0])) * 180 / np.pi
     # z = np.arccos(np.dot(gaze, [0, 0, 1])) * 180 / np.pi
     # R3, blah = cv2.Rodrigues(np.array([x, y, z]))
     # t = result['sphere']['center']
-    
+
     H = get_pupil_transformation_matrix(
         result['circle_3d']['normal'], result['circle_3d']['center']
     )
@@ -353,11 +364,11 @@ while True:
     print(R)
     # draw_axis(frame.img, R, t, cameraMatrix0, distCoeffs0)
     print(offset)
-    draw_gaze(frame.img, result['circle_3d']['center'], result['sphere']['center'], offset, cameraMatrix0, distCoeffs0)
+    draw_gaze(
+        frame.img, result['circle_3d']['center'], result['sphere']['center'], offset,
+        cameraMatrix0, distCoeffs0
+    )
 
-    
-    # draw_axis(frame.img, result['circle_3d']['center'],result['circle_3d']['center']+result['circle_3d']['normal'], cameraMatrix0, distCoeffs0)
-     
     if image0 is not None:
         cv2.imshow('Video0', frame.img)
         if vout:
