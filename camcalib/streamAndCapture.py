@@ -13,7 +13,7 @@ Look into the fifo height width cuz i messed with that and im not sure if its
 broken
 '''
 class WebcamVideoStream:
-    def __init__(self,  camType,  src=None,fifo=None):
+    def __init__(self, src=None,fifo=None):
         # initialize the video camera stream and read the first frame
         # from the stream
         # self.stream = cv2.VideoCapture(src)
@@ -109,6 +109,7 @@ i=0
 cap = [None,None,None,None]
 j=0
 # i is the num cameras to open streams for
+'''
 while i < 3: 
     try:
         cap[i] = cv2.VideoCapture(int(j))
@@ -123,15 +124,16 @@ while i < 3:
     j+=1
     if j > 20:
         break
+'''
 
 # cap3.set(3,1280)
 # cap3.set(4,720)
 
 cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
-cv2.namedWindow('Video2')
-cv2.namedWindow('Video3')
-cv2.namedWindow('Video4')
+# cv2.namedWindow('Video2')
+# cv2.namedWindow('Video3')
+# cv2.namedWindow('Video4')
 # cv2.namedWindow('Video5')
 
 time = 0
@@ -140,21 +142,21 @@ time = 0
 while True:     
     image0 = vs0.read()
     image1 = vs1.read()
-    _, image2 = cap[0].read()
-    _, image3 = cap[1].read() 
-    _, image4 = cap[2].read()
+    # _, image2 = cap[0].read()
+    # _, image3 = cap[1].read() 
+    # _, image4 = cap[2].read()
     # _, image5 = cap[3].read()
 
     if image0 is not None:
         cv2.imshow('Video0', image0)
     if image1 is not None:
         cv2.imshow('Video1', image1)
-    if image2 is not None:
-        cv2.imshow('Video2', image2)
-    if image3 is not None:
-        cv2.imshow('Video3', image3)
-    if image4 is not None:
-        cv2.imshow('Video4', image4)
+    # if image2 is not None:
+        # cv2.imshow('Video2', image2)
+    # if image3 is not None:
+        # cv2.imshow('Video3', image3)
+    # if image4 is not None:
+        # cv2.imshow('Video4', image4)
     # if image5 is not None:
         # cv2.imshow('Video5', image5)
  
@@ -166,15 +168,15 @@ while True:
         #cv2.imwrite('calb/0-'+str(time)+'.png', image0)
         cv2.imwrite('photos/0-'+str(time)+'.png', image0)
         cv2.imwrite('photos/1-'+str(time)+'.png', image1)
-        cv2.imwrite('photos/2-'+str(time)+'.png', image2)
-        cv2.imwrite('photos/3-'+str(time)+'.png', image3)
-        cv2.imwrite('photos/4-'+str(time)+'.png', image4)
+        # cv2.imwrite('photos/2-'+str(time)+'.png', image2)
+        # cv2.imwrite('photos/3-'+str(time)+'.png', image3)
+        # cv2.imwrite('photos/4-'+str(time)+'.png', image4)
         # cv2.imwrite('photos/5-'+str(time)+'.png', image5)
         time += 1
 
-cap[0].release()
-cap[1].release()
-cap[2].release()
+# cap[0].release()
+# cap[1].release()
+# cap[2].release()
 #cap[3].release()
 vs0.stop()
 vs1.stop()

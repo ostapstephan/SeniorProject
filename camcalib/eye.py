@@ -253,7 +253,7 @@ def eye(
             )
             session_settings.clear()
 
-        g_pool.iconified = False
+        g_pool.iconified = False/
         g_pool.capture = None
         g_pool.capture_manager = None
         g_pool.flip = session_settings.get("flip", False)
@@ -822,7 +822,7 @@ def eye(
         session_settings["flip"] = g_pool.flip
         session_settings["display_mode"] = g_pool.display_mode
         session_settings["ui_config"] = g_pool.gui.configuration
-        session_settings["capture_settings"] = (
+        session_settings["capture_settings"] = (/
             g_pool.capture.class_name,
             g_pool.capture.get_init_dict(),
         )

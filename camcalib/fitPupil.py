@@ -8,12 +8,13 @@ import time
 # import datetime
 from matrix import get_pupil_transformation_matrix
 from threading import Thread
-sys.path.append(os.path.abspath('../pupil/pupil_src/shared_modules'))
+sys.path.append(os.path.abspath('../../TEST'))
+sys.path.append(os.path.abspath('../../TEST/shared_modules'))
 from pupil_detectors import Detector_3D
 from methods import Roi
 sys.path.append(os.path.abspath('../'))
 # from calibrateHaar import calibrate
-from pbcvt import findPupilEllipse
+# from pbcvt import findPupilEllipse
 from params import pupil_tracker_params
 
 from cameras import cam0mat as cameraMatrix0
@@ -164,23 +165,51 @@ def draw_axis(img, R, t, K, dist):
     try:
         rotV, _ = cv2.Rodrigues(R)
         points = np.float32([
-            [10, 0, 0],
-            [0, 10, 0],
-            [0, 0, 20],
+            [0, 0, 5],
+            [0, 5, 0],
+            [5, 0, 0],
+            [0, -5, 0],
+            [-5, 0, 0],
             [0, 0, 0],
         ]).reshape(-1, 3)
         axisPoints, _ = cv2.projectPoints(points, rotV, t, K, dist)
         img = cv2.line(
-            img, tuple(axisPoints[3].ravel()), tuple(axisPoints[0].ravel()),
-            (255, 0, 0), 3
-        )
-        img = cv2.line(
-            img, tuple(axisPoints[3].ravel()), tuple(axisPoints[1].ravel()),
+            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[0].ravel()),
             (0, 255, 0), 3
         )
         img = cv2.line(
-            img, tuple(axisPoints[3].ravel()), tuple(axisPoints[2].ravel()),
+            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[1].ravel()),
+            (255, 0, 0), 3
+        )
+        img = cv2.line(
+            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[2].ravel()),
             (0, 0, 255), 3
+        )
+        img = cv2.line(
+            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[3].ravel()),
+            (255, 0, 155), 3
+        )
+        img = cv2.line(
+            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[4].ravel()),
+            (155, 0, 255), 3
+        )
+    except OverflowError:
+        pass
+    return img
+
+def draw_gaze(img, pupil, eye, off, K, dist):
+    # unit is mm
+    try:
+        rotV, _ = cv2.Rodrigues(np.array([0.0,0.0,0.0]))
+        t = np.array(off)
+        points = np.float32([
+            pupil,
+            eye,
+        ]).reshape(-1, 3)
+        axisPoints, _ = cv2.projectPoints(points, rotV, t, K, dist)
+        img = cv2.arrowedLine(
+            img, tuple(axisPoints[1].ravel()), tuple(axisPoints[0].ravel()),
+            (0, 255, 0), 3
         )
     except OverflowError:
         pass
@@ -265,9 +294,13 @@ pupil_detector.set_2d_detector_property('pupil_size_min', 30)
 'ellipse_true_support_min_dist': 2.5,
 'support_pixel_ratio_exponent': 2.0
 '''
+vout = None
+if int(sys.argv[1]):
+    fourcc = cv2.VideoWriter_fourcc(*'x264')
+    vout = cv2.VideoWriter('pupilnorm.mp4', fourcc, 32.0, frame.img.shape)
 
 roi = Roi(frame.img.shape)
-
+offset = [-0.64, -1.28, 0.0]
 while True:
     image0 = vs0.read()
     image1 = vs1.read()
@@ -275,7 +308,12 @@ while True:
     if image0 is not None:
         # image0 = cv2.rotate(image0, cv2.ROTATE_90_CLOCKWISE)
         frame.gray = cv2.cvtColor(image0, cv2.COLOR_BGR2GRAY)
-        frame.img = image0
+        frame.img = image0.copy()
+        prevImage = image0.copy()
+        frame.timestamp = time.time()
+    else:
+        frame.img = prevImage.copy()
+        frame.gray = cv2.cvtColor(prevImage, cv2.COLOR_BGR2GRAY)
         frame.timestamp = time.time()
 
     # result = pupil_detector.detect(frame, roi , "algorithm" )
@@ -285,48 +323,58 @@ while True:
     # draw_ellipse(
     #     frame.img, (out[0], out[1]), (out[2], out[3]), out[4], 0, 360, (0, 0, 0), -1
     # )
-    print(
-        "ROI0!",
-        ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
-    )
-    result = pupil_detector.detect(frame, roi, "Roi")
-    print(
-        "ROI1!",
-        ';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]])
-    )
+    print("ROI0!",';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]]) )
+    result = pupil_detector.detect(frame, roi, True)
+    print("ROI1!",';'.join([str(x) for x in [roi.lX, roi.lY, roi.uX, roi.uY, roi.nX, roi.nY]]) )
+
     draw_ellipse(
         frame.img, result['ellipse']['center'],
         [x / 2 for x in result['ellipse']['axes']], result['ellipse']['angle'], 0, 360,
         (255, 255, 0), 2
     )
+    
     print(result['circle_3d'])
     print(result['sphere'])
-    gaze = np.subtract(result['circle_3d']['center'], result['sphere']['center'])
-    gaze = gaze / np.linalg.norm(gaze)
-    gaze = gaze / np.linalg.norm(gaze)
-    print(gaze)
-    x = np.arccos(np.dot(gaze, [1, 0, 0])) * 180 / np.pi
-    y = np.arccos(np.dot(gaze, [0, 1, 0])) * 180 / np.pi
-    z = np.arccos(np.dot(gaze, [0, 0, 1])) * 180 / np.pi
-    # R, blah = cv2.Rodrigues(np.array([x, y, z]))
+#     gaze = np.array(result['circle_3d']['normal'])
+    # x = np.arccos(np.dot(gaze, [1, 0, 0])) * 180 / np.pi
+    # y = np.arccos(np.dot(gaze, [0, 1, 0])) * 180 / np.pi
+    # z = np.arccos(np.dot(gaze, [0, 0, 1])) * 180 / np.pi
+    # R3, blah = cv2.Rodrigues(np.array([x, y, z]))
     # t = result['sphere']['center']
+    
     H = get_pupil_transformation_matrix(
         result['circle_3d']['normal'], result['circle_3d']['center']
     )
+    H[:3, 3] = result['sphere']['center']
+    # H[:3, 3] = result['circle_3d']['center']
     t = H[:3, 3]
     R = H[:3, :3]
     print(t)
     print(R)
-    draw_axis(frame.img, R, t, cameraMatrix0, distCoeffs0)
+    # draw_axis(frame.img, R, t, cameraMatrix0, distCoeffs0)
+    print(offset)
+    draw_gaze(frame.img, result['circle_3d']['center'], result['sphere']['center'], offset, cameraMatrix0, distCoeffs0)
 
+    
+    # draw_axis(frame.img, result['circle_3d']['center'],result['circle_3d']['center']+result['circle_3d']['normal'], cameraMatrix0, distCoeffs0)
+     
     if image0 is not None:
         cv2.imshow('Video0', frame.img)
+        if vout:
+            vout.write(frame.img)
     if image1 is not None:
         cv2.imshow('Video1', image1)
-
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
         break
+    elif key & 0xFF == ord('h'):
+        offset[0] += 0.02
+    elif key & 0xFF == ord('j'):
+        offset[0] -= 0.02
+    elif key & 0xFF == ord('k'):
+        offset[1] += 0.02
+    elif key & 0xFF == ord('l'):
+        offset[1] -= 0.02
     elif key == 32:  # spacebar will save the following images
         # cv2.imwrite('photos/0-'+str(time)+'.png', image0)
         # cv2.imwrite('photos/1-'+str(time)+'.png', image1)
@@ -337,3 +385,5 @@ vs0.stop()
 vs1.stop()
 time.sleep(1)
 cv2.destroyAllWindows()
+if vout:
+    vout.release()
