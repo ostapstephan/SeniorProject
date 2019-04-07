@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import cv2
 import subprocess as sp
 import sys
@@ -166,7 +167,7 @@ while True:
     
     elif key == 32:  # spacebar will save the following images
         #cv2.imwrite('calb/0-'+str(time)+'.png', image0)
-        cv2.imwrite('photos/0-'+str(time)+'.png', image0)
+        # cv2.imwrite('photos/0-'+str(time)+'.png', image0)
         cv2.imwrite('photos/1-'+str(time)+'.png', image1)
         # cv2.imwrite('photos/2-'+str(time)+'.png', image2)
         # cv2.imwrite('photos/3-'+str(time)+'.png', image3)

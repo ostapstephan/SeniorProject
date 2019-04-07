@@ -40,7 +40,6 @@ and capture and save photos from webcams and network raspberry pi's
 The Readme.txt in this dir will help with debugging
 '''
 
-
 class WebcamVideoStream:
     def __init__(self, src=None, fifo=None):
         # initialize the video camera stream and read the first frame
@@ -164,7 +163,7 @@ class Frame(object):
         self.img = np.zeros((self.height, self.width, 3))
         self.timestamp = time.time()
 
-def solveperp(imagePoints, method):
+def solveperp(objectPoints, imagePoints, cameraMatrix, distCoeffs, method):
     if method == 1:
         return cv2.solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)
     elif method == 2:
@@ -270,6 +269,8 @@ frame = Frame(0)
 roi = Roi(frame.img.shape)
 cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
+cv2.namedWindow('aruco')
+
 vout0 = None
 vout1 = None
 if len(sys.argv) > 1:
@@ -281,8 +282,8 @@ if len(sys.argv) > 1:
 ## ACTUAL STUFF BELOW
 
 pupil_detector = Detector_3D()
-# pupil_detector.set_2d_detector_property('pupil_size_max', 80)
-pupil_detector.set_2d_detector_property('pupil_size_min', 30)
+pupil_detector.set_2d_detector_property('pupil_size_max', 150)
+# pupil_detector.set_2d_detector_property('pupil_size_min', 10)
 # pupil_detector.set_2d_detector_property('ellipse_roundness_ratio', 0.1)
 # pupil_detector.set_2d_detector_property('coarse_filter_max', 240)
 # pupil_detector.set_2d_detector_property('intensity_range', 30)
@@ -314,7 +315,7 @@ pupil_detector.set_2d_detector_property('pupil_size_min', 30)
 'support_pixel_ratio_exponent': 2.0
 '''
 
-objectPoints = np.array(
+objPoints = np.array(
     [(0, 0, 0), (536.575, 0, 0), (536.575, -361.95, 0), (0, -361.95, 0)]
 )
 
@@ -323,6 +324,8 @@ UNITS_W = 14 # mm per box
 
 Hoff = np.eye(4)
 Hoff[:3,3] = np.array([-0.64, -1.28, 0.0])
+HoffW = np.eye(4)
+HoffW[:3,3] = np.array([0.0,0.0,0.0])
 HEW = np.eye(4)
 # R = np.array([78.69,90.0,180+39.67])
 R = np.array([-14.0,40.0,143]) # ********** DONT DELETE
@@ -330,11 +333,34 @@ HEW[:3,:3] = cv2.Rodrigues(R)[0]
 HEW[:3,3] = np.array([-58.58,-18.19,32.47])
 # H90 = np.eye(4)
 # H90[:3,:3] = cv2.Rodrigues(np.array([0.0,0.0,0.0]))[0]
-Z = 1000
+# Z = 1000
 
 markdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 arucoParams = cv2.aruco.DetectorParameters_create()
 # TODO edit default params
+
+rvecM = [0.0,0.0,0.0]
+tvecM = [0.0,0.0,0.0]
+plane = None
+
+# aruco
+
+def getNewArucoImg(): 
+    markerSize = 93
+    outimg = cv2.aruco.drawMarker(markdict, 5, markerSize) 
+    height = 1050
+    width = 1680
+    bigPic  = np.ones((height,width)) 
+    
+    #random offset 
+    yo = np.random.randint(0,width-markerSize)
+    xo = np.random.randint(0,height-markerSize)   
+    bigPic[xo:xo+markerSize,yo:yo+markerSize] = outimg
+    
+    
+    return bigPic, (xo+markerSize/2,yo+markerSize/2)
+
+aflag = True
 
 
 ## MAIN LOOP
@@ -363,10 +389,22 @@ while True:
 
 
     corners, ids, rejected = cv2.aruco.detectMarkers(image1, markdict, cameraMatrix=cameraMatrix1, distCoeff=distCoeffs1)
-    print(corners)
-    print(ids)
+    # print(corners)
+    # print('ids:',ids)
     image1 = cv2.aruco.drawDetectedMarkers(image1, corners, ids, (255,0,255))
-
+    rvecsC, tvecsC, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 50, cameraMatrix1, distCoeffs1)
+    # rvecsCs, tvecsCs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 20, cameraMatrix1, distCoeffs1)
+     
+    # print(rvecsC)
+    # print("individual t vecs: ",tvecsC)
+    if ids is not None and len(corners) == len(ids) == 5:
+        imgPoints = np.array([corners[x] for x in ids.T[0].argsort()])
+        plane =  np.array([tvecsC[x][0][:] for x in ids.T[0].argsort()])
+        gazepoint = plane[4]
+        plane = plane[:4]
+        print("Monitor: ",plane)
+        print("3d gaze point: ",gazepoint)
+        # retval, rvecM, tvecM = solveperp(objPoints, imgPoints, cameraMatrix1, distCoeffs1, 1)
 
     result = pupil_detector.detect(frame, roi, True)
     draw_ellipse(
@@ -378,46 +416,50 @@ while True:
     pupil = np.array(result['circle_3d']['center'])
     print("sphere: ", sphere)
     print("pupil: ", pupil)
+
     draw_gaze(
         frame.img, sphere, pupil, Hoff,
         cameraMatrix0, distCoeffs0
     )
     HEW[:3,:3] = cv2.Rodrigues(R)[0]
-    H_all = Hoff @ HEW
-    print(H_all)
+    H_all = Hoff @ HEW @ HoffW
+    # print(H_all)
     sphere2 = H_all[:3,:3] @ sphere + H_all[:3,3]
     pupil2 = H_all[:3,:3] @ pupil + H_all[:3,3]
     pupil2[0] *= -1
     sphere2[0] *= -1
     # pupil2 *= UNITS_E/UNITS_W
     # sphere2 *= UNITS_E/UNITS_W
-    print("sphere2: ", sphere2)
-    print("pupil2: ", pupil2)
+    # print("sphere2: ", sphere2)
+    # print("pupil2: ", pupil2)
     gaze = pupil2-sphere2
-    plane = objectPoints.copy()
-    plane[:,0] -= 536.575/2
-    plane[:,1] += 361.95/2
-    # plane /= UNITS_W
-    plane[:,2] = Z
-    print("Plane: ",plane)
-    draw_plane(image1, plane, np.eye(4), cameraMatrix1, distCoeffs1)
+    if plane is None:
+        plane = objPoints.copy()
+        plane[:,0] -= 536.575/2
+        plane[:,1] += 361.95/2
+        plane /= UNITS_W
+        plane[:,2] = 10000
+
+    # print("Plane: ",plane)
+    draw_plane(image1, plane[0:4], np.eye(4), cameraMatrix1, distCoeffs1)
     gazeEnd = lineIntersection(plane[0], np.cross(plane[1]-plane[0],plane[2]-plane[1]), pupil, gaze)
-    gazeEnd2 = gazeEnd + 2*gaze
-    print("Cross: ", np.cross(plane[1]-plane[0],plane[2]-plane[1]))
-    print("GazeE: ", gazeEnd)
-    print("GazeE2: ", gazeEnd2)
-    print("R: ", R)
+    # gazeEnd2 = gazeEnd + 2*gaze
+    # print("Cross: ", np.cross(plane[1]-plane[0],plane[2]-plane[1]))
+    # print("GazeE: ", gazeEnd)
+    # print("GazeE2: ", gazeEnd2)
+    # print("R: ", R)
+    # print("HoffW: ", HoffW)
     draw_gaze(
         image1, pupil, gazeEnd, np.eye(4),
         cameraMatrix1, distCoeffs1
     )
-    draw_gaze(
-        image1, gazeEnd, gazeEnd2, np.eye(4),
-        cameraMatrix1, distCoeffs1
-    )
+    # draw_gaze(
+        # image1, gazeEnd, gazeEnd2, np.eye(4),
+        # cameraMatrix1, distCoeffs1
+    # )
+    
     image1 = cv2.aruco.drawAxis(image1, cameraMatrix1, distCoeffs1,
             cv2.Rodrigues(H_all[:3,:3])[0], plane[0], 100)
-
 
 
     if image0 is not None:
@@ -428,6 +470,12 @@ while True:
         cv2.imshow('Video1', image1)
         if vout1:
             vout1.write(image1)
+    if aflag == True:
+        aimg,(xxx,yyy)= getNewArucoImg()
+        cv2.imshow("aruco", aimg) 
+        print('the x and y of the center aruco img',xxx ,' ',yyy)
+        aflag = False
+     
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
         break
@@ -451,10 +499,24 @@ while True:
         R[2] += 1.0
     elif key & 0xFF == ord('p'):
         R[2] -= 1.0
-    elif key & 0xFF == ord('z'):
-        Z += 1
     elif key & 0xFF == ord('x'):
-        Z -= 1
+        HoffW[:3,3][0] += 1.02
+    elif key & 0xFF == ord('c'):
+        HoffW[:3,3][0] -= 1.02
+    elif key & 0xFF == ord('v'):
+        HoffW[:3,3][1] += 1.02
+    elif key & 0xFF == ord('b'):
+        HoffW[:3,3][1] -= 1.02
+    elif key & 0xFF == ord('n'):
+        HoffW[:3,3][2] += 1.02
+    elif key & 0xFF == ord('m'):
+        HoffW[:3,3][2] -= 1.02
+    elif key & 0xFF == ord('a'):
+        aflag = True
+    # elif key & 0xFF == ord('z'):
+        # Z += 1
+    # elif key & 0xFF == ord('x'):
+        # Z -= 1
     elif key == 32:  # spacebar will save the following images
         # cv2.imwrite('photos/0-'+str(time)+'.png', image0)
         # cv2.imwrite('photos/1-'+str(time)+'.png', image1)

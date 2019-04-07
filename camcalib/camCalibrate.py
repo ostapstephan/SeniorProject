@@ -11,7 +11,7 @@ import sys
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-cbrow, cbcol = 6, 9
+cbrow, cbcol = 7, 9
 # this is for 7,11 because you have to have inlier points.
 # https://stackoverflow.com/questions/31249037/calibrating-webcam-using-python-and-opencv-error/36441746
 
