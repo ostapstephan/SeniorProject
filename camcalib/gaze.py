@@ -39,9 +39,6 @@ This code will be able to open fast and low latency streams
 and capture and save photos from webcams and network raspberry pi's
 The Readme.txt in this dir will help with debugging
 '''
-objectPoints = np.array(
-    [(0, 0, 0), (536.575, 0, 0), (536.575, -361.95, 0), (0, -361.95, 0)]
-)
 
 
 class WebcamVideoStream:
@@ -109,6 +106,7 @@ class WebcamVideoStream:
         while True:
             # if the thread indicator variable is set, stop the thread
             if self.stopped:
+                self.pipe.kill()
                 return
             raw_image = self.pipe.stdout.read(self.height * self.width * 3)
             self.image = np.fromstring(
@@ -125,7 +123,6 @@ class WebcamVideoStream:
     def stop(self):
         # indicate that the thread should be stopped
         self.stopped = True
-
 
 def draw_ellipse(
         img,
@@ -154,7 +151,6 @@ def draw_ellipse(
         shift,
     )
 
-
 class Frame(object):
     def __init__(self, camType):
         if camType == 0:
@@ -168,46 +164,6 @@ class Frame(object):
         self.img = np.zeros((self.height, self.width, 3))
         self.timestamp = time.time()
 
-
-def draw_axis(img, R, t, K, dist):
-    # unit is mm
-    try:
-        rotV, _ = cv2.Rodrigues(R)
-        points = np.float32(
-            [
-                [0, 0, 5],
-                [0, 5, 0],
-                [5, 0, 0],
-                [0, -5, 0],
-                [-5, 0, 0],
-                [0, 0, 0],
-            ]
-        ).reshape(-1, 3)
-        axisPoints, _ = cv2.projectPoints(points, rotV, t, K, dist)
-        img = cv2.line(
-            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[0].ravel()),
-            (0, 255, 0), 3
-        )
-        img = cv2.line(
-            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[1].ravel()),
-            (255, 0, 0), 3
-        )
-        img = cv2.line(
-            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[2].ravel()),
-            (0, 0, 255), 3
-        )
-        img = cv2.line(
-            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[3].ravel()),
-            (255, 0, 155), 3
-        )
-        img = cv2.line(
-            img, tuple(axisPoints[5].ravel()), tuple(axisPoints[4].ravel()),
-            (155, 0, 255), 3
-        )
-    except OverflowError:
-        pass
-    return img
-
 def solveperp(imagePoints, method):
     if method == 1:
         return cv2.solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)
@@ -217,44 +173,6 @@ def solveperp(imagePoints, method):
         )
     else:
         return cv2.solveP3P(objectPoints, imagePoints, cameraMatrix, distCoeffs)
-
-def order_points(pts, img):
-    # initialzie a list of coordinates that will be ordered
-    # such that the first entry in the list is the top-left,
-    # the second entry is the top-right, the third is the
-    # bottom-right, and the fourth is the bottom-left
-    rect = [0, 0, 0, 0]
-
-    if len(pts) != 4:
-        return rect
-
-    # the top-left point will have the smallest sum, whereas
-    # the bottom-right point will have the largest sum
-    s = [sum(pt.pt) for pt in pts]
-    rect[0] = pts[np.argmin(s)]
-    rect[2] = pts[np.argmax(s)]
-
-    # now, compute the difference between the points, the
-    # top-right point will have the smallest difference,
-    # whereas the bottom-left will have the largest difference
-    diff = [pt.pt[0] - pt.pt[1] for pt in pts]
-    rect[1] = pts[np.argmin(diff)]
-    rect[3] = pts[np.argmax(diff)]
-
-    # return the ordered coordinates
-    rect = np.array([(pt.pt[0], pt.pt[1]) for pt in rect])
-
-    shift = 0
-    for p in rect:
-        print(img[p[0], p[1]])
-        if img[p[0], p[1]] == 0:
-            break
-        shift += 1
-
-    rect = rect[shift:] + rect[:shift]
-
-    return rect
-
 
 def draw_gaze(img, start, end, H, K, dist):
     # unit is mm
@@ -345,13 +263,22 @@ print()
 print('Fifo 1 started')
 print()
 print()
-i = 0
-j = 0
+# i = 0
+# j = 0
 
 frame = Frame(0)
-
+roi = Roi(frame.img.shape)
 cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
+vout0 = None
+vout1 = None
+if len(sys.argv) > 1:
+    fourcc = cv2.VideoWriter_fourcc(*'x264')
+    vout0 = cv2.VideoWriter('demo0.mp4', fourcc, 24.0, (frame.img.shape[1], frame.img.shape[0]))
+    vout1 = cv2.VideoWriter('demo1.mp4', fourcc, 24.0, (frame.img.shape[0], frame.img.shape[1]))
+
+
+## ACTUAL STUFF BELOW
 
 pupil_detector = Detector_3D()
 # pupil_detector.set_2d_detector_property('pupil_size_max', 80)
@@ -386,18 +313,14 @@ pupil_detector.set_2d_detector_property('pupil_size_min', 30)
 'ellipse_true_support_min_dist': 2.5,
 'support_pixel_ratio_exponent': 2.0
 '''
-vout = None
-if len(sys.argv) > 1:
-    fourcc = cv2.VideoWriter_fourcc(*'x264')
-    vout = cv2.VideoWriter(
-        'pupilnorm.mp4', fourcc, 24, (int(frame.img.shape[1]), int(frame.img.shape[0]))
-    )
+
+objectPoints = np.array(
+    [(0, 0, 0), (536.575, 0, 0), (536.575, -361.95, 0), (0, -361.95, 0)]
+)
 
 UNITS_E = 1 # mm per box
 UNITS_W = 14 # mm per box
 
-
-roi = Roi(frame.img.shape)
 Hoff = np.eye(4)
 Hoff[:3,3] = np.array([-0.64, -1.28, 0.0])
 HEW = np.eye(4)
@@ -409,32 +332,12 @@ HEW[:3,3] = np.array([-58.58,-18.19,32.47])
 # H90[:3,:3] = cv2.Rodrigues(np.array([0.0,0.0,0.0]))[0]
 Z = 1000
 
+markdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+arucoParams = cv2.aruco.DetectorParameters_create()
+# TODO edit default params
 
 
-
-
-#solve Perp params 
-params = cv2.SimpleBlobDetector_Params()
-# Change thresholds
-params.minThreshold = 0
-params.maxThreshold = 50
-# Filter by Area.
-params.filterByArea = True
-params.minArea = 60
-# params.maxArea = 100
-# Filter by Circularity
-params.filterByCircularity = True
-params.minCircularity = 0.6
-# Filter by Convexity
-params.filterByConvexity = True
-params.minConvexity = 0.6
-# Filter by Inertia
-params.filterByInertia = True
-params.minInertiaRatio = 0.2
-# Create a detector with the parameters 
-cornerDetector = cv2.SimpleBlobDetector_create(params)
-
-
+## MAIN LOOP
 
 while True:
     image0 = vs0.read()
@@ -457,14 +360,12 @@ while True:
 
     else:
         image1 = prevImage1
-    
 
-    gray1 = 255-cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
-    keypoints = cornerDetector.detect(gray1)
-    for point in keypoints:
-        image1 = cv2.drawMarker(
-            image1, (int(point.pt[0]), int(point.pt[1])), (0, 0, 255)
-        )
+
+    corners, ids, rejected = cv2.aruco.detectMarkers(image1, markdict, cameraMatrix=cameraMatrix1, distCoeff=distCoeffs1)
+    print(corners)
+    print(ids)
+    image1 = cv2.aruco.drawDetectedMarkers(image1, corners, ids, (255,0,255))
 
 
     result = pupil_detector.detect(frame, roi, True)
@@ -521,10 +422,12 @@ while True:
 
     if image0 is not None:
         cv2.imshow('Video0', frame.img)
-        if vout:
-            vout.write(frame.img)
+        if vout0:
+            vout0.write(frame.img)
     if image1 is not None:
         cv2.imshow('Video1', image1)
+        if vout1:
+            vout1.write(image1)
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
         break
@@ -558,9 +461,11 @@ while True:
         # time += 1
         pass
 
-if vout:
-    vout.release()
-time.sleep(1)
+if vout0:
+    vout0.release()
+if vout1:
+    vout1.release()
 cv2.destroyAllWindows()
+time.sleep(0.5)
 vs0.stop()
 vs1.stop()
