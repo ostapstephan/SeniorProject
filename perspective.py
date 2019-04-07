@@ -25,7 +25,7 @@ else:
 cameraMatrix = np.array(cameraMatrix)
 distCoeffs = np.array(distCoeffs)
 objectPoints = np.array(
-    [(0, 0, 0), (18.4, 0, 0), (18.4, -13.9, 0), (0, -13.9, 0)]
+    [(0, 0, 0), (536.575, 0, 0), (536.575, -361.95, 0), (0, -361.95, 0)]
 )
 
 
