@@ -1,5 +1,5 @@
 import cv2
-import requests 
+import requests
 import numpy as np
 
 stream = requests.get('http://192.168.1.251:8080/?action=stream', stream=True)
