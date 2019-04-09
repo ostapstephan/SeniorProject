@@ -5,6 +5,7 @@ import subprocess as sp
 import sys
 import numpy as np
 import time
+import pickle
 # import datetime
 from matrix import get_pupil_transformation_matrix
 from threading import Thread
@@ -123,6 +124,35 @@ class WebcamVideoStream:
         # indicate that the thread should be stopped
         self.stopped = True
 
+markdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+arucoParams = cv2.aruco.DetectorParameters_create()
+
+def getNewArucoImg(): 
+    markerSize = 93
+    outimg = cv2.aruco.drawMarker(markdict, 5, markerSize) 
+    height = 1050
+    width = 1680
+    bigPic  = np.ones((height,width)) 
+    
+    #random offset 
+    yo = np.random.randint(0,width-markerSize)
+    xo = np.random.randint(0,height-markerSize)  
+    bigPic[xo:xo+markerSize,yo:yo+markerSize] = outimg
+    return bigPic, (xo+markerSize/2,yo+markerSize/2)
+
+def drawArucoImg(xo,yo): 
+    markerSize = 93
+    outimg = cv2.aruco.drawMarker(markdict, 5, markerSize) 
+    height = 1050
+    width = 1680
+    bigPic  = np.ones((height,width)) 
+    xo = int(xo)
+    yo = int(yo)
+    bigPic[xo:xo+markerSize,yo:yo+markerSize] = outimg
+    return bigPic, (xo+markerSize/2,yo+markerSize/2)
+
+
+
 def draw_ellipse(
         img,
         center,
@@ -218,7 +248,7 @@ def draw_plane(img, corners, H, K, dist):
         pass
     return img
 
-def lineIntersection(planePoint, planeNormal, linePoint, lineDirection):
+def lineIntersection(planePoint, planeNormal, linePoint, lineDirection):  #THIS FUNCTION
     if np.dot(planeNormal,lineDirection) == 0:
         return planePoint
 
@@ -269,14 +299,14 @@ frame = Frame(0)
 roi = Roi(frame.img.shape)
 cv2.namedWindow('Video0')
 cv2.namedWindow('Video1')
-# cv2.namedWindow('aruco')
+cv2.namedWindow('aruco')
 
 vout0 = None
 vout1 = None
 if len(sys.argv) > 1:
     fourcc = cv2.VideoWriter_fourcc(*'x264')
-    vout0 = cv2.VideoWriter('demo0.mp4', fourcc, 24.0, (frame.img.shape[1], frame.img.shape[0]))
-    vout1 = cv2.VideoWriter('demo1.mp4', fourcc, 24.0, (frame.img.shape[0], frame.img.shape[1]))
+    vout0 = cv2.VideoWriter(sys.argv[1]+'0.mp4', fourcc, 24.0, (frame.img.shape[1], frame.img.shape[0]))
+    vout1 = cv2.VideoWriter(sys.argv[2]+'1.mp4', fourcc, 24.0, (frame.img.shape[0], frame.img.shape[1]))
 
 
 ## ACTUAL STUFF BELOW
@@ -323,9 +353,9 @@ UNITS_E = 1 # mm per box
 UNITS_W = 14 # mm per box
 
 Hoff = np.eye(4)
-Hoff[:3,3] = np.array([-1.06, -1.28, 0.0])
+Hoff[:3,3] = np.array([-0.64, -1.28, 0.0])
 HoffW = np.eye(4)
-HoffW[:3,3] = np.array([-104.0,18.0,44.0])
+HoffW[:3,3] = np.array([0.0,0.0,0.0])
 HEW = np.eye(4)
 # R = np.array([78.69,90.0,180+39.67])
 R = np.array([-14.0,40.0,143]) # ********** DONT DELETE
@@ -335,37 +365,28 @@ HEW[:3,3] = np.array([-58.58,-18.19,32.47])
 # H90[:3,:3] = cv2.Rodrigues(np.array([0.0,0.0,0.0]))[0]
 # Z = 1000
 
-markdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-arucoParams = cv2.aruco.DetectorParameters_create()
-# TODO edit default params
 
+
+# aruco
 rvecM = [0.0,0.0,0.0]
 tvecM = [0.0,0.0,0.0]
 plane = None
+aflag = True
 
-# aruco
+def mse(real,predict):
+    return(np.sqrt(np.sum((real.flatten()-predict.flatten() ) **2)))
 
-def getNewArucoImg(): 
-    markerSize = 93
-    outimg = cv2.aruco.drawMarker(markdict, 5, markerSize) 
-    height = 1050
-    width = 1680
-    bigPic  = np.ones((height,width)) 
-    
-    #random offset 
-    yo = np.random.randint(0,width-markerSize)
-    xo = np.random.randint(0,height-markerSize)   
-    bigPic[xo:xo+markerSize,yo:yo+markerSize] = outimg
-    
-    
-    return bigPic, (xo+markerSize/2,yo+markerSize/2)
-
-# aflag = True
-
-
+xoff = 0
+yoff = 0
+factorx = 1
+factory = 1
 ## MAIN LOOP
-
+outData = []
+count = 0
+gazepoint= None
 while True:
+    features = {}
+    labels = {}
     image0 = vs0.read()
     image1 = vs1.read()
 
@@ -397,13 +418,15 @@ while True:
      
     # print(rvecsC)
     # print("individual t vecs: ",tvecsC)
-    if ids is not None and len(corners) == len(ids) == 4:
+    if ids is not None and len(corners) == len(ids) == 5:
         imgPoints = np.array([corners[x] for x in ids.T[0].argsort()])
         plane =  np.array([tvecsC[x][0][:] for x in ids.T[0].argsort()])
-        # gazepoint = plane[4]
-        # plane = plane[:4]
-        print("Monitor: ",plane)
+        gazepoint = plane[4]
+        plane = plane[:4]
+        # print("Monitor: ",plane)
+        features['corners'] = plane
         # print("3d gaze point: ",gazepoint)
+        labels['3dpoint'] = gazepoint
         # retval, rvecM, tvecM = solveperp(objPoints, imgPoints, cameraMatrix1, distCoeffs1, 1)
 
     result = pupil_detector.detect(frame, roi, True)
@@ -414,18 +437,22 @@ while True:
     )
     sphere = np.array(result['sphere']['center'])
     pupil = np.array(result['circle_3d']['center'])
-    print("sphere: ", sphere)
-    print("pupil: ", pupil)
+    # print("sphere: ", sphere)
+    # print("pupil: ", pupil)
+    features['eyeCenter'] = result['sphere']
+    features['pupilCenter'] =  result['circle_3d']
 
     draw_gaze(
         frame.img, sphere, pupil, Hoff,
         cameraMatrix0, distCoeffs0
     )
+
+
     HEW[:3,:3] = cv2.Rodrigues(R)[0]
     H_all = Hoff @ HEW @ HoffW
     # print(H_all)
-    sphere2 = H_all[:3,:3] @ sphere + H_all[:3,3]
-    pupil2 = H_all[:3,:3] @ pupil + H_all[:3,3]
+    sphere2 = H_all[:3,:3] @ sphere + H_all[:3,3] # THESE TWO LINES
+    pupil2 = H_all[:3,:3] @ pupil + H_all[:3,3]   # THATS THIS ONE TOO
     pupil2[0] *= -1
     sphere2[0] *= -1
     # pupil2 *= UNITS_E/UNITS_W
@@ -442,14 +469,16 @@ while True:
 
     # print("Plane: ",plane)
     draw_plane(image1, plane[0:4], np.eye(4), cameraMatrix1, distCoeffs1)
-    gazeEnd = lineIntersection(plane[0], np.cross(plane[1]-plane[0],plane[2]-plane[1]), pupil2, gaze)
+    gazeEnd = lineIntersection(plane[0],np.cross(plane[1]-plane[0],plane[2]-plane[1]), pupil2, gaze) #TODO fix the thing to be either pupil 0 k
+    # if gazepoint is not None:
+       # print( mse( gazeEnd, gazepoint) )
+
     # gazeEnd2 = gazeEnd + 2*gaze
     # print("Cross: ", np.cross(plane[1]-plane[0],plane[2]-plane[1]))
     # print("GazeE: ", gazeEnd)
     # print("GazeE2: ", gazeEnd2)
     # print("R: ", R)
-    print("Hoff: ", Hoff)
-    print("HoffW: ", HoffW)
+    # print("HoffW: ", HoffW)
     draw_gaze(
         image1, pupil, gazeEnd, np.eye(4),
         cameraMatrix1, distCoeffs1
@@ -471,12 +500,23 @@ while True:
         cv2.imshow('Video1', image1)
         if vout1:
             vout1.write(image1)
+   
+    if aflag == True:
+        if xoff > 1680-93 or xoff<0:
+            factorx*=-1
+        if yoff > 1050-93 or yoff<0:
+            factory*=-1
+        xo += factorx
+        yo += factory
+
     # if aflag == True:
         # aimg,(xxx,yyy)= getNewArucoImg()
         # cv2.imshow("aruco", aimg) 
-        # print('the x and y of the center aruco img',xxx ,' ',yyy)
+        # # print('the x and y of the center aruco img',xxx ,' ',yyy)
         # aflag = False
      
+    labels["2dpoint"]=(xxx,yyy)
+    
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
         break
@@ -512,17 +552,26 @@ while True:
         HoffW[:3,3][2] += 1.02
     elif key & 0xFF == ord('m'):
         HoffW[:3,3][2] -= 1.02
-    # elif key & 0xFF == ord('a'):
-        # aflag = True
+    elif key & 0xFF == ord('a'):
+        aflag = not aflag 
     # elif key & 0xFF == ord('z'):
         # Z += 1
     # elif key & 0xFF == ord('x'):
         # Z -= 1
     elif key == 32:  # spacebar will save the following images
-        # cv2.imwrite('photos/0-'+str(time)+'.png', image0)
-        # cv2.imwrite('photos/1-'+str(time)+'.png', image1)
-        # time += 1
-        pass
+        cv2.imwrite('training/img0-'+str(count)+'.png', frame.img)
+        cv2.imwrite('training/img1-'+str(count)+'.png', image1)
+        count += 1
+        if 'corners' in features and 'eyeCenter' in features and 'pupilCenter'in features and '3dpoint' in labels and '2dpoint' in labels:
+            outData.append((features,labels))
+        else:
+            print("Didn't quite catch that.png")
+        print((features,labels))
+
+
+with open('./training/data'+str(time.time())+'.pickle', 'wb') as handle:
+    pickle.dump(outData, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
 
 if vout0:
     vout0.release()
