@@ -40,6 +40,7 @@ and capture and save photos from webcams and network raspberry pi's
 The Readme.txt in this dir will help with debugging
 '''
 
+
 class WebcamVideoStream:
     def __init__(self, src=None, fifo=None):
         # initialize the video camera stream and read the first frame
@@ -123,6 +124,7 @@ class WebcamVideoStream:
         # indicate that the thread should be stopped
         self.stopped = True
 
+
 def draw_ellipse(
         img,
         center,
@@ -150,6 +152,7 @@ def draw_ellipse(
         shift,
     )
 
+
 class Frame(object):
     def __init__(self, camType):
         if camType == 0:
@@ -163,21 +166,21 @@ class Frame(object):
         self.img = np.zeros((self.height, self.width, 3))
         self.timestamp = time.time()
 
+
 def solveperp(objectPoints, imagePoints, cameraMatrix, distCoeffs, method):
     if method == 1:
         return cv2.solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs)
     elif method == 2:
-        return cv2.solvePnPRansac(
-            objectPoints, imagePoints, cameraMatrix, distCoeffs
-        )
+        return cv2.solvePnPRansac(objectPoints, imagePoints, cameraMatrix, distCoeffs)
     else:
         return cv2.solveP3P(objectPoints, imagePoints, cameraMatrix, distCoeffs)
+
 
 def draw_gaze(img, start, end, H, K, dist):
     # unit is mm
     try:
-        rvec, _ = cv2.Rodrigues(H[:3,:3])
-        tvec = H[:3,3]
+        rvec, _ = cv2.Rodrigues(H[:3, :3])
+        tvec = H[:3, 3]
         points = np.float32([
             start,
             end,
@@ -191,11 +194,12 @@ def draw_gaze(img, start, end, H, K, dist):
         pass
     return img
 
+
 def draw_plane(img, corners, H, K, dist):
     # unit is mm
     try:
-        rvec, _ = cv2.Rodrigues(H[:3,:3])
-        tvec = H[:3,3]
+        rvec, _ = cv2.Rodrigues(H[:3, :3])
+        tvec = H[:3, 3]
         points = np.float32(corners).reshape(-1, 3)
         axisPoints, _ = cv2.projectPoints(points, rvec, tvec, K, dist)
         img = cv2.arrowedLine(
@@ -218,12 +222,15 @@ def draw_plane(img, corners, H, K, dist):
         pass
     return img
 
+
 def lineIntersection(planePoint, planeNormal, linePoint, lineDirection):
-    if np.dot(planeNormal,lineDirection) == 0:
+    if np.dot(planeNormal, lineDirection) == 0:
         return planePoint
 
-    t = (np.dot(planeNormal,planePoint) - np.dot(planeNormal,linePoint)) / np.dot(planeNormal,lineDirection)
-    return linePoint + t*lineDirection;
+    t = (np.dot(planeNormal, planePoint) -
+         np.dot(planeNormal, linePoint)) / np.dot(planeNormal, lineDirection)
+    return linePoint + t * lineDirection
+
 
 # class Roi(object):
 # """this is a simple 2D Region of Interest class
@@ -275,11 +282,14 @@ vout0 = None
 vout1 = None
 if len(sys.argv) > 1:
     fourcc = cv2.VideoWriter_fourcc(*'x264')
-    vout0 = cv2.VideoWriter('demo0.mp4', fourcc, 24.0, (frame.img.shape[1], frame.img.shape[0]))
-    vout1 = cv2.VideoWriter('demo1.mp4', fourcc, 24.0, (frame.img.shape[0], frame.img.shape[1]))
+    vout0 = cv2.VideoWriter(
+        'demo0.mp4', fourcc, 24.0, (frame.img.shape[1], frame.img.shape[0])
+    )
+    vout1 = cv2.VideoWriter(
+        'demo1.mp4', fourcc, 24.0, (frame.img.shape[0], frame.img.shape[1])
+    )
 
-
-## ACTUAL STUFF BELOW
+# ACTUAL STUFF BELOW
 
 pupil_detector = Detector_3D()
 pupil_detector.set_2d_detector_property('pupil_size_max', 150)
@@ -319,18 +329,18 @@ objPoints = np.array(
     [(0, 0, 0), (536.575, 0, 0), (536.575, -361.95, 0), (0, -361.95, 0)]
 )
 
-UNITS_E = 1 # mm per box
-UNITS_W = 14 # mm per box
+UNITS_E = 1  # mm per box
+UNITS_W = 14  # mm per box
 
 Hoff = np.eye(4)
-Hoff[:3,3] = np.array([-1.06, -1.28, 0.0])
+Hoff[:3, 3] = np.array([-1.06, -1.28, 0.0])
 HoffW = np.eye(4)
-HoffW[:3,3] = np.array([-104.0,18.0,44.0])
+HoffW[:3, 3] = np.array([-104.0, 18.0, 44.0])
 HEW = np.eye(4)
 # R = np.array([78.69,90.0,180+39.67])
-R = np.array([-14.0,40.0,143]) # ********** DONT DELETE
-HEW[:3,:3] = cv2.Rodrigues(R)[0]
-HEW[:3,3] = np.array([-58.58,-18.19,32.47])
+R = np.array([-14.0, 40.0, 143])  # ********** DONT DELETE
+HEW[:3, :3] = cv2.Rodrigues(R)[0]
+HEW[:3, 3] = np.array([-58.58, -18.19, 32.47])
 # H90 = np.eye(4)
 # H90[:3,:3] = cv2.Rodrigues(np.array([0.0,0.0,0.0]))[0]
 # Z = 1000
@@ -339,31 +349,54 @@ markdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 arucoParams = cv2.aruco.DetectorParameters_create()
 # TODO edit default params
 
-rvecM = [0.0,0.0,0.0]
-tvecM = [0.0,0.0,0.0]
+rvecM = [0.0, 0.0, 0.0]
+tvecM = [0.0, 0.0, 0.0]
 plane = None
 
 # aruco
 
-def getNewArucoImg(): 
+
+def getNewArucoImg():
     markerSize = 93
-    outimg = cv2.aruco.drawMarker(markdict, 5, markerSize) 
+    outimg = cv2.aruco.drawMarker(markdict, 5, markerSize)
     height = 1050
     width = 1680
-    bigPic  = np.ones((height,width)) 
-    
-    #random offset 
-    yo = np.random.randint(0,width-markerSize)
-    xo = np.random.randint(0,height-markerSize)   
-    bigPic[xo:xo+markerSize,yo:yo+markerSize] = outimg
-    
-    
-    return bigPic, (xo+markerSize/2,yo+markerSize/2)
+    bigPic = np.ones((height, width))
+
+    # random offset
+    yo = np.random.randint(0, width - markerSize)
+    xo = np.random.randint(0, height - markerSize)
+    bigPic[xo:xo + markerSize, yo:yo + markerSize] = outimg
+
+    return bigPic, (xo + markerSize / 2, yo + markerSize / 2)
+
 
 # aflag = True
 
+# HEATMAP
 
-## MAIN LOOP
+
+def gkern(kernlen, sigma):
+    # First a 1-D  Gaussian
+    lim = kernlen // 2 + (kernlen % 2) / 2
+    t = np.linspace(-lim, lim, kernlen)
+    bump = np.exp(-0.25 * (t / sigma)**2)
+    bump /= np.trapz(bump)  # normalize the integral to 1
+
+    # make a 2-D kernel out of it
+    return bump[:, np.newaxis] * bump[np.newaxis, :]
+
+
+img0 = np.zeros((1050, 1680, 3))
+img1 = np.zeros((1050, 1680, 3))
+radius = 200
+sigma = 30
+gain = 500
+decay = 1.007
+mask = gkern(2 * radius + 1, sigma) * gain
+cv2.namedWindow('heatmap')
+curpos = [int(img1.shape[0] / 2), int(img1.shape[1] / 2)]
+# MAIN LOOP
 
 while True:
     image0 = vs0.read()
@@ -382,29 +415,32 @@ while True:
 
     if image1 is not None:
         image1 = cv2.rotate(image1, cv2.ROTATE_180)
-        prevImage1 = image1.copy() 
+        prevImage1 = image1.copy()
 
     else:
         image1 = prevImage1
 
-
-    corners, ids, rejected = cv2.aruco.detectMarkers(image1, markdict, cameraMatrix=cameraMatrix1, distCoeff=distCoeffs1)
+    corners, ids, rejected = cv2.aruco.detectMarkers(
+        image1, markdict, cameraMatrix=cameraMatrix1, distCoeff=distCoeffs1
+    )
     # print(corners)
     # print('ids:',ids)
-    image1 = cv2.aruco.drawDetectedMarkers(image1, corners, ids, (255,0,255))
-    rvecsC, tvecsC, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 50, cameraMatrix1, distCoeffs1)
-    # rvecsCs, tvecsCs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 20, cameraMatrix1, distCoeffs1)
-     
+    image1 = cv2.aruco.drawDetectedMarkers(image1, corners, ids, (255, 0, 255))
+    rvecsC, tvecsC, _ = cv2.aruco.estimatePoseSingleMarkers(
+        corners, 50, cameraMatrix1, distCoeffs1
+    )
+
     # print(rvecsC)
     # print("individual t vecs: ",tvecsC)
     if ids is not None and len(corners) == len(ids) == 4:
         imgPoints = np.array([corners[x] for x in ids.T[0].argsort()])
-        plane =  np.array([tvecsC[x][0][:] for x in ids.T[0].argsort()])
+        plane = np.array([tvecsC[x][0][:] for x in ids.T[0].argsort()])
         # gazepoint = plane[4]
         # plane = plane[:4]
-        print("Monitor: ",plane)
+        print("Monitor: ", plane)
         # print("3d gaze point: ",gazepoint)
-        # retval, rvecM, tvecM = solveperp(objPoints, imgPoints, cameraMatrix1, distCoeffs1, 1)
+        # retval, rvecM, tvecM = solveperp(objPoints, imgPoints, cameraMatrix1,
+        # distCoeffs1, 1)
 
     result = pupil_detector.detect(frame, roi, True)
     draw_ellipse(
@@ -417,32 +453,50 @@ while True:
     print("sphere: ", sphere)
     print("pupil: ", pupil)
 
-    draw_gaze(
-        frame.img, sphere, pupil, Hoff,
-        cameraMatrix0, distCoeffs0
-    )
-    HEW[:3,:3] = cv2.Rodrigues(R)[0]
+    draw_gaze(frame.img, sphere, pupil, Hoff, cameraMatrix0, distCoeffs0)
+    HEW[:3, :3] = cv2.Rodrigues(R)[0]
     H_all = Hoff @ HEW @ HoffW
     # print(H_all)
-    sphere2 = H_all[:3,:3] @ sphere + H_all[:3,3]
-    pupil2 = H_all[:3,:3] @ pupil + H_all[:3,3]
+    sphere2 = H_all[:3, :3] @ sphere + H_all[:3, 3]
+    pupil2 = H_all[:3, :3] @ pupil + H_all[:3, 3]
     pupil2[0] *= -1
     sphere2[0] *= -1
     # pupil2 *= UNITS_E/UNITS_W
     # sphere2 *= UNITS_E/UNITS_W
     # print("sphere2: ", sphere2)
     # print("pupil2: ", pupil2)
-    gaze = pupil2-sphere2
+    gaze = pupil2 - sphere2
     if plane is None:
         plane = objPoints.copy()
-        plane[:,0] -= 536.575/2
-        plane[:,1] += 361.95/2
+        plane[:, 0] -= 536.575 / 2
+        plane[:, 1] += 361.95 / 2
         plane /= UNITS_W
-        plane[:,2] = 10000
+        plane[:, 2] = 10000
 
     # print("Plane: ",plane)
     draw_plane(image1, plane[0:4], np.eye(4), cameraMatrix1, distCoeffs1)
-    gazeEnd = lineIntersection(plane[0], np.cross(plane[1]-plane[0],plane[2]-plane[1]), pupil2, gaze)
+    gazeEnd = lineIntersection(
+        plane[0], np.cross(plane[1] - plane[0], plane[2] - plane[1]), pupil2, gaze
+    )
+    gazepoint2d = np.abs(plane[1] - gazeEnd)[:2] * 4
+    print(gazepoint2d)
+    curpos = gazepoint2d
+    xn = max(curpos[0] - radius, 0)
+    yn = max(curpos[1] - radius, 0)
+    xm = min(curpos[0] + radius + 1, img1.shape[0])
+    ym = min(curpos[1] + radius + 1, img1.shape[1])
+    kxn = radius - (curpos[0] - xn)
+    kyn = radius - (curpos[1] - yn)
+    kxm = radius + xm - curpos[0]
+    kym = radius + ym - curpos[1]
+    # print(curpos)
+    # print((xn, yn), ' ', (xm, ym))
+    # print((kxn, kyn), ' ', (kxm, kym))
+    img1[xn:xm, yn:ym, 0] += mask[kxn:kxm, kyn:kym]
+    img1[xn:xm, yn:ym, 1] -= mask[kxn:kxm, kyn:kym] / 4
+    img1[xn:xm, yn:ym, 2] -= mask[kxn:kxm, kyn:kym] / 2
+    img1[:, :, :] /= decay
+    cv2.imshow('preview', img0 + img1)
     # gazeEnd2 = gazeEnd + 2*gaze
     # print("Cross: ", np.cross(plane[1]-plane[0],plane[2]-plane[1]))
     # print("GazeE: ", gazeEnd)
@@ -450,18 +504,16 @@ while True:
     # print("R: ", R)
     print("Hoff: ", Hoff)
     print("HoffW: ", HoffW)
-    draw_gaze(
-        image1, pupil, gazeEnd, np.eye(4),
-        cameraMatrix1, distCoeffs1
-    )
+    draw_gaze(image1, pupil, gazeEnd, np.eye(4), cameraMatrix1, distCoeffs1)
     # draw_gaze(
-        # image1, gazeEnd, gazeEnd2, np.eye(4),
-        # cameraMatrix1, distCoeffs1
+    # image1, gazeEnd, gazeEnd2, np.eye(4),
+    # cameraMatrix1, distCoeffs1
     # )
-    
-    image1 = cv2.aruco.drawAxis(image1, cameraMatrix1, distCoeffs1,
-            cv2.Rodrigues(H_all[:3,:3])[0], plane[0], 100)
 
+    image1 = cv2.aruco.drawAxis(
+        image1, cameraMatrix1, distCoeffs1,
+        cv2.Rodrigues(H_all[:3, :3])[0], plane[0], 100
+    )
 
     if image0 is not None:
         cv2.imshow('Video0', frame.img)
@@ -472,22 +524,22 @@ while True:
         if vout1:
             vout1.write(image1)
     # if aflag == True:
-        # aimg,(xxx,yyy)= getNewArucoImg()
-        # cv2.imshow("aruco", aimg) 
-        # print('the x and y of the center aruco img',xxx ,' ',yyy)
-        # aflag = False
-     
+    # aimg,(xxx,yyy)= getNewArucoImg()
+    # cv2.imshow("aruco", aimg)
+    # print('the x and y of the center aruco img',xxx ,' ',yyy)
+    # aflag = False
+
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
         break
     elif key & 0xFF == ord('h'):
-        Hoff[:3,3][0] += 0.02
+        Hoff[:3, 3][0] += 0.02
     elif key & 0xFF == ord('j'):
-        Hoff[:3,3][0] -= 0.02
+        Hoff[:3, 3][0] -= 0.02
     elif key & 0xFF == ord('k'):
-        Hoff[:3,3][1] += 0.02
+        Hoff[:3, 3][1] += 0.02
     elif key & 0xFF == ord('l'):
-        Hoff[:3,3][1] -= 0.02
+        Hoff[:3, 3][1] -= 0.02
     elif key & 0xFF == ord('t'):
         R[0] += 1.0
     elif key & 0xFF == ord('y'):
@@ -501,23 +553,23 @@ while True:
     elif key & 0xFF == ord('p'):
         R[2] -= 1.0
     elif key & 0xFF == ord('x'):
-        HoffW[:3,3][0] += 1.02
+        HoffW[:3, 3][0] += 1.02
     elif key & 0xFF == ord('c'):
-        HoffW[:3,3][0] -= 1.02
+        HoffW[:3, 3][0] -= 1.02
     elif key & 0xFF == ord('v'):
-        HoffW[:3,3][1] += 1.02
+        HoffW[:3, 3][1] += 1.02
     elif key & 0xFF == ord('b'):
-        HoffW[:3,3][1] -= 1.02
+        HoffW[:3, 3][1] -= 1.02
     elif key & 0xFF == ord('n'):
-        HoffW[:3,3][2] += 1.02
+        HoffW[:3, 3][2] += 1.02
     elif key & 0xFF == ord('m'):
-        HoffW[:3,3][2] -= 1.02
+        HoffW[:3, 3][2] -= 1.02
     # elif key & 0xFF == ord('a'):
-        # aflag = True
+    # aflag = True
     # elif key & 0xFF == ord('z'):
-        # Z += 1
+    # Z += 1
     # elif key & 0xFF == ord('x'):
-        # Z -= 1
+    # Z -= 1
     elif key == 32:  # spacebar will save the following images
         # cv2.imwrite('photos/0-'+str(time)+'.png', image0)
         # cv2.imwrite('photos/1-'+str(time)+'.png', image1)
