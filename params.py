@@ -11,16 +11,16 @@ ImageAwareSupport = True
 StarburstPoints = 0
 # Seed = 0
 pupil_tracker_params = (
-                Radius_Min,
-                Radius_Max,
-                CannyThreshold1,
-                CannyThreshold2,
-                CannyBlur,
-                EarlyRejection,
-                EarlyTerminationPercentage,
-                PercentageInliers,
-                InlierIterations,
-                ImageAwareSupport,
-                StarburstPoints,
-                # Seed
-            )
+    Radius_Min,
+    Radius_Max,
+    CannyThreshold1,
+    CannyThreshold2,
+    CannyBlur,
+    EarlyRejection,
+    EarlyTerminationPercentage,
+    PercentageInliers,
+    InlierIterations,
+    ImageAwareSupport,
+    StarburstPoints,
+    # Seed
+)
