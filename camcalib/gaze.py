@@ -335,7 +335,7 @@ UNITS_W = 14  # mm per box
 Hoff = np.eye(4)
 Hoff[:3, 3] = np.array([-1.06, -1.28, 0.0])
 HoffW = np.eye(4)
-HoffW[:3, 3] = np.array([-104.0, 18.0, 44.0])
+HoffW[:3, 3] = np.array([-168.0, -100.0, -235.0])
 HEW = np.eye(4)
 # R = np.array([78.69,90.0,180+39.67])
 R = np.array([-14.0, 40.0, 143])  # ********** DONT DELETE
@@ -478,9 +478,10 @@ while True:
     gazeEnd = lineIntersection(
         plane[0], np.cross(plane[1] - plane[0], plane[2] - plane[1]), pupil2, gaze
     )
-    gazepoint2d = np.abs(plane[1] - gazeEnd)[:2] * 4
+    gazepoint2d = np.abs(plane[1] - gazeEnd)[:2] * 2
     print(gazepoint2d)
-    curpos = gazepoint2d
+    curpos =  [int(gazepoint2d[1]),int(gazepoint2d[0])] # [int(x) for x in gazepoint2d]
+     
     xn = max(curpos[0] - radius, 0)
     yn = max(curpos[1] - radius, 0)
     xm = min(curpos[0] + radius + 1, img1.shape[0])
@@ -492,11 +493,14 @@ while True:
     # print(curpos)
     # print((xn, yn), ' ', (xm, ym))
     # print((kxn, kyn), ' ', (kxm, kym))
-    img1[xn:xm, yn:ym, 0] += mask[kxn:kxm, kyn:kym]
-    img1[xn:xm, yn:ym, 1] -= mask[kxn:kxm, kyn:kym] / 4
-    img1[xn:xm, yn:ym, 2] -= mask[kxn:kxm, kyn:kym] / 2
-    img1[:, :, :] /= decay
-    cv2.imshow('preview', img0 + img1)
+    try:
+        img1[xn:xm, yn:ym, 0] += mask[kxn:kxm, kyn:kym]
+        img1[xn:xm, yn:ym, 1] -= mask[kxn:kxm, kyn:kym] / 4
+        img1[xn:xm, yn:ym, 2] -= mask[kxn:kxm, kyn:kym] / 2
+        img1[:, :, :] /= decay
+        cv2.imshow('preview', img0 + img1)
+    except Exception as e:
+        print(e)
     # gazeEnd2 = gazeEnd + 2*gaze
     # print("Cross: ", np.cross(plane[1]-plane[0],plane[2]-plane[1]))
     # print("GazeE: ", gazeEnd)

@@ -5,7 +5,7 @@ import subprocess as sp
 import sys
 import numpy as np
 import time
-import pickle
+import pickle as pk
 # import datetime
 from matrix import get_pupil_transformation_matrix
 from threading import Thread
@@ -35,6 +35,18 @@ distCoeffs1 = np.array(distCoeffs1)
 
 TIMEOUT = 10000
 FFMPEG_BIN = "ffmpeg"
+
+
+from sklearn.model_selection import train_test_split
+import sklearn.linear_model
+import sklearn.utils
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.multioutput import MultiOutputRegressor
+import xgboost as xgb
+
+
 '''
 This code will be able to open fast and low latency streams
 and capture and save photos from webcams and network raspberry pi's
@@ -126,6 +138,7 @@ class WebcamVideoStream:
 
 markdict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 arucoParams = cv2.aruco.DetectorParameters_create()
+arucoParams.adaptiveThreshConstant = 10
 
 def getNewArucoImg(): 
     markerSize = 93
@@ -149,9 +162,7 @@ def drawArucoImg(xo,yo):
     xo = int(xo)
     yo = int(yo)
     bigPic[xo:xo+markerSize,yo:yo+markerSize] = outimg
-    return bigPic, (xo+markerSize/2,yo+markerSize/2)
-
-
+    return bigPic 
 
 def draw_ellipse(
         img,
@@ -163,8 +174,7 @@ def draw_ellipse(
         color,
         thickness=3,
         lineType=cv2.LINE_AA,
-        shift=10
-):
+        shift=10):
     center = (int(round(center[0] * 2**shift)), int(round(center[1] * 2**shift)))
     axes = (int(round(axes[0] * 2**shift)), int(round(axes[1] * 2**shift)))
     cv2.ellipse(
@@ -247,6 +257,17 @@ def draw_plane(img, corners, H, K, dist):
     except OverflowError:
         pass
     return img
+
+def useHomog(plane,pupil,sphere,R,t):
+    H = np.eye(4)
+    H[:3,:3] = cv2.Rodrigues(R)[0]
+    H[:3,3]= t 
+    
+    sphere2 = H[:3,:3] @ sphere + H[:3,3] # THESE TWO LINES
+    pupil2  = H[:3,:3] @ pupil  + H[:3,3]   # THATS THIS ONE TOO 
+    gaze = pupil2-sphere2  
+    gazeEnd = lineIntersection(plane[0],np.cross(plane[1]-plane[0],plane[2]-plane[1]), pupil2, gaze) 
+    return gazeEnd  #predi
 
 def lineIntersection(planePoint, planeNormal, linePoint, lineDirection):  #THIS FUNCTION
     if np.dot(planeNormal,lineDirection) == 0:
@@ -352,10 +373,20 @@ objPoints = np.array(
 UNITS_E = 1 # mm per box
 UNITS_W = 14 # mm per box
 
+# Hoff = np.eye(4)
+# Hoff[:3,3] = np.array([-0.64, -1.28, 0.0])
+# HoffW = np.eye(4)
+# HoffW[:3,3] = np.array([0.0,0.0,0.0])
+
+
+
 Hoff = np.eye(4)
-Hoff[:3,3] = np.array([-0.64, -1.28, 0.0])
+Hoff[:3, 3] = np.array([-1.06, -1.28, 0.0])
 HoffW = np.eye(4)
-HoffW[:3,3] = np.array([0.0,0.0,0.0])
+HoffW[:3, 3] = np.array([-168.0, -100.0, -235.0])
+
+
+
 HEW = np.eye(4)
 # R = np.array([78.69,90.0,180+39.67])
 R = np.array([-14.0,40.0,143]) # ********** DONT DELETE
@@ -365,25 +396,141 @@ HEW[:3,3] = np.array([-58.58,-18.19,32.47])
 # H90[:3,:3] = cv2.Rodrigues(np.array([0.0,0.0,0.0]))[0]
 # Z = 1000
 
+# HEATMAP
+def gkern(kernlen, sigma):
+    # First a 1-D  Gaussian
+    lim = kernlen // 2 + (kernlen % 2) / 2
+    t = np.linspace(-lim, lim, kernlen)
+    bump = np.exp(-0.25 * (t / sigma)**2)
+    bump /= np.trapz(bump)  # normalize the integral to 1
+
+    # make a 2-D kernel out of it
+    return bump[:, np.newaxis] * bump[np.newaxis, :]
+
+
+def convertFeat(f): 
+    # print(f)
+    feat = np.zeros((1, 26 ))
+    feat[0][:12]   =          f['corners'].flatten()
+    feat[0][12:15] = np.array(f['eyeCenter']['center']) 
+    feat[0][15]    =          f['eyeCenter']['radius'] 
+    feat[0][16:19] = np.array(f['pupilCenter']['center']) 
+    feat[0][19:22] = np.array(f['pupilCenter']['normal']) 
+    feat[0][22]    =          f['pupilCenter']['radius']
+
+    plane = f['corners']
+    pupil = f['pupilCenter']['center']
+    sphere= f['eyeCenter']['center']  
+    t = np.array([-168.0, -100.0, -235.0])
+    R = np.array([-14.0,40.0,143])     
+
+
+
+    feat[0][23:] = useHomog(plane,pupil,sphere,R,t)
+    return feat
+
+radius = 200
+sigma = 30
+gain = 500
+decay = 1.007
+mask = gkern(2 * radius + 1, sigma) * gain
+
+
+img0 = np.zeros((1050, 1680, 3))
+img1 = np.zeros((1050, 1680, 3))
+
+
+
+cv2.namedWindow('heatmap')
+curpos = [int(img1.shape[0] / 2), int(img1.shape[1] / 2)]
 
 
 # aruco
 rvecM = [0.0,0.0,0.0]
 tvecM = [0.0,0.0,0.0]
 plane = None
-aflag = True
+aflag = False
 
-def mse(real,predict):
-    return(np.sqrt(np.sum((real.flatten()-predict.flatten() ) **2)))
+########################################
+# open and unpickle
+with open ("training/databig.pickle", 'rb') as handle: 
+    Data = pk.load(handle) 
 
-xoff = 0
-yoff = 0
-factorx = 1
-factory = 1
+feat = np.zeros((len(Data), 26 ))
+lab  = np.zeros((len(Data), 2 ))
+ones = np.ones((len(Data),1))
+
+for i in range(len(Data)): 
+    feat[i][:12]   =          Data[i][0]['corners'].flatten()
+    feat[i][12:15] = np.array(Data[i][0]['eyeCenter']['center']) 
+    feat[i][15]    =          Data[i][0]['eyeCenter']['radius'] 
+    feat[i][16:19] = np.array(Data[i][0]['pupilCenter']['center']) 
+    feat[i][19:22] = np.array(Data[i][0]['pupilCenter']['normal']) 
+    feat[i][22]    =          Data[i][0]['pupilCenter']['radius']
+
+    plane = Data[i][0]['corners']
+    pupil = Data[i][0]['pupilCenter']['center']
+    sphere= Data[i][0]['eyeCenter']['center']  
+    t = np.array([-0.64, -1.28, 0.0])
+    R = np.array([-14.0,40.0,143])     
+    feat[i][23:] = useHomog(plane,pupil,sphere,R,t)
+
+    lab[i][:] =np.array( Data[i][1]['2dpoint'] )
+
+    if i ==1:
+        print(feat[1],lab[1])
+
+def mae(a,b): # mean absolute error
+    return np.mean(abs(a.flatten()-b.flatten()))
+def mse(a,b): # mean-squared error, input: Nx2
+    #return np.sqrt(np.mean(abs(a.flatten()-b.flatten())**2))
+    #return np.linalg.norm(a-b)
+    return np.sqrt(np.mean(np.linalg.norm(a-b,axis=1)**2))
+
+# shuffle & split
+feat,lab = sklearn.utils.shuffle(feat,lab)
+X_train, X_test, y_train, y_test = train_test_split(feat, lab, test_size=0.1, random_state=0)
+
+# XGBoost
+# '''
+dtrainx = xgb.DMatrix(X_train,y_train[:,0])
+dtest = xgb.DMatrix(X_test)
+paramsx = {'eta': 0.1, 'gamma': 1.0,
+               'min_child_weight': 0.1, 'max_depth': 6}
+xgb_modelx = xgb.train(paramsx, dtrainx, num_boost_round=100)
+dtrainy = xgb.DMatrix(X_train,y_train[:,1])
+paramsy = {'eta': 0.1, 'gamma': 1.0,
+        'min_child_weight': 0.1, 'max_depth': 6}
+xgb_modely = xgb.train(paramsy, dtrainy, num_boost_round=100)
+
+
+predx = xgb_modelx.predict(dtest)
+predy = xgb_modely.predict(dtest)
+'''
+# polynomial regression
+poly = PolynomialFeatures(degree=2,include_bias=False)
+X_poly = poly.fit_transform(X_train)
+poly_reg = sklearn.linear_model.LinearRegression()
+poly_reg.fit(X_poly,y_train)
+
+y_poly_est = poly_reg.predict(poly.transform(X_test))
+#print(np.hstack((y_poly_est,y_test)))
+print('poly MAE:',[ mae(y_poly_est[:,0],y_test[:,0]), mae(y_poly_est[:,1],y_test[:,1])])
+print('poly MSE: ',mse(y_poly_est,y_test))
+'''
+
+########################################
+
+
+xoff = 1680/2
+yoff = 1050/2
+factorx = 4
+factory = 4
 ## MAIN LOOP
 outData = []
 count = 0
 gazepoint= None
+
 while True:
     features = {}
     labels = {}
@@ -427,7 +574,6 @@ while True:
         features['corners'] = plane
         # print("3d gaze point: ",gazepoint)
         labels['3dpoint'] = gazepoint
-        # retval, rvecM, tvecM = solveperp(objPoints, imgPoints, cameraMatrix1, distCoeffs1, 1)
 
     result = pupil_detector.detect(frame, roi, True)
     draw_ellipse(
@@ -441,6 +587,45 @@ while True:
     # print("pupil: ", pupil)
     features['eyeCenter'] = result['sphere']
     features['pupilCenter'] =  result['circle_3d']
+   
+
+    if 'corners' in features and 'eyeCenter' in features and 'pupilCenter'in features:
+        feat = convertFeat(features) 
+        
+        dtest = xgb.DMatrix(feat)
+        predx = xgb_modelx.predict(dtest)
+        predy = xgb_modely.predict(dtest)
+        curpos =  int(predx),int(predy) 
+       
+        # y_poly_est = poly_reg.predict(poly.transform(feat))
+        # print(y_poly_est)
+        # curpos =[int(y_poly_est[0][0]), int(y_poly_est[0][1])]
+        # print('curpos',curpos)
+    else:
+        print('corners' in features)
+        curpos = None
+    
+    
+    if curpos is not None:
+        #heatmap
+        xn = max(curpos[0] - radius, 0)
+        yn = max(curpos[1] - radius, 0)
+        xm = min(curpos[0] + radius + 1, img1.shape[0])
+        ym = min(curpos[1] + radius + 1, img1.shape[1])
+        kxn = radius - (curpos[0] - xn)
+        kyn = radius - (curpos[1] - yn)
+        kxm = radius + xm - curpos[0]
+        kym = radius + ym - curpos[1]
+        # print(curpos)
+        # print((xn, yn), ' ', (xm, ym))
+        # print((kxn, kyn), ' ', (kxm, kym))
+        img1[xn:xm, yn:ym, 0] += mask[kxn:kxm, kyn:kym]
+        img1[xn:xm, yn:ym, 1] -= mask[kxn:kxm, kyn:kym] / 4
+        img1[xn:xm, yn:ym, 2] -= mask[kxn:kxm, kyn:kym] / 2
+
+    img1[:, :, :] /= decay
+    cv2.imshow('heatmap', img0 + img1)
+
 
     draw_gaze(
         frame.img, sphere, pupil, Hoff,
@@ -470,27 +655,17 @@ while True:
     # print("Plane: ",plane)
     draw_plane(image1, plane[0:4], np.eye(4), cameraMatrix1, distCoeffs1)
     gazeEnd = lineIntersection(plane[0],np.cross(plane[1]-plane[0],plane[2]-plane[1]), pupil2, gaze) #TODO fix the thing to be either pupil 0 k
-    # if gazepoint is not None:
-       # print( mse( gazeEnd, gazepoint) )
 
-    # gazeEnd2 = gazeEnd + 2*gaze
-    # print("Cross: ", np.cross(plane[1]-plane[0],plane[2]-plane[1]))
-    # print("GazeE: ", gazeEnd)
-    # print("GazeE2: ", gazeEnd2)
-    # print("R: ", R)
-    # print("HoffW: ", HoffW)
     draw_gaze(
         image1, pupil, gazeEnd, np.eye(4),
         cameraMatrix1, distCoeffs1
     )
-    # draw_gaze(
-        # image1, gazeEnd, gazeEnd2, np.eye(4),
-        # cameraMatrix1, distCoeffs1
-    # )
     
     image1 = cv2.aruco.drawAxis(image1, cameraMatrix1, distCoeffs1,
             cv2.Rodrigues(H_all[:3,:3])[0], plane[0], 100)
 
+    # gazepoint2d = np.abs(plane[1] - gazeEnd)[:2] * 2
+    # features["2dpoint"] = gazepoint2d
 
     if image0 is not None:
         cv2.imshow('Video0', frame.img)
@@ -502,20 +677,36 @@ while True:
             vout1.write(image1)
    
     if aflag == True:
-        if xoff > 1680-93 or xoff<0:
+        if xoff >= 1680-96 or xoff<=1:
             factorx*=-1
-        if yoff > 1050-93 or yoff<0:
+        if yoff >= 1050-96 or yoff<=1:
             factory*=-1
-        xo += factorx
-        yo += factory
+        xoff += factorx
+        yoff += factory
+        # print(xoff,yoff) 
+        aimg = drawArucoImg(yoff,xoff)
+        cv2.imshow("aruco", aimg) 
+        
+        # cv2.imwrite('training/img0-'+str(count)+'.png', frame.img)
+        # cv2.imwrite('training/img1-'+str(count)+'.png', image1) 
+        # count += 1
+        labels["2dpoint"]=(xoff+(93/2),yoff +(93/2))
+
+        if 'corners' in features and 'eyeCenter' in features and 'pupilCenter'in features and '3dpoint' in labels and '2dpoint' in labels:
+            outData.append((features,labels))
+            print("appended")
+            print((features,labels))
+        else:
+            print("Didn't quite catch that")
 
     # if aflag == True:
         # aimg,(xxx,yyy)= getNewArucoImg()
         # cv2.imshow("aruco", aimg) 
         # # print('the x and y of the center aruco img',xxx ,' ',yyy)
         # aflag = False
-     
-    labels["2dpoint"]=(xxx,yyy)
+    
+    
+    
     
     key = cv2.waitKey(1)
     if key & 0xFF == ord('q'):
@@ -558,20 +749,12 @@ while True:
         # Z += 1
     # elif key & 0xFF == ord('x'):
         # Z -= 1
-    elif key == 32:  # spacebar will save the following images
-        cv2.imwrite('training/img0-'+str(count)+'.png', frame.img)
-        cv2.imwrite('training/img1-'+str(count)+'.png', image1)
-        count += 1
-        if 'corners' in features and 'eyeCenter' in features and 'pupilCenter'in features and '3dpoint' in labels and '2dpoint' in labels:
-            outData.append((features,labels))
-        else:
-            print("Didn't quite catch that.png")
-        print((features,labels))
-
+    # elif key == 32:  # spacebar will save the following images
+       # pass 
 
 with open('./training/data'+str(time.time())+'.pickle', 'wb') as handle:
-    pickle.dump(outData, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    
+    pk.dump(outData, handle, protocol=pk.HIGHEST_PROTOCOL)
+    print("Saved")     
 
 if vout0:
     vout0.release()

@@ -103,7 +103,7 @@ for i in range(len(Data)):
 
 
 
-    lab[i][:] =np.array( Data[i][1]['2dpoint'] )
+    lab[i][:] = np.array( Data[i][1]['2dpoint'] )
 
     if i ==1:
         print(feat[1],lab[1])
